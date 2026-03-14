@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Writer Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl md:text-3xl font-bold mb-6">AI Writer Lab ✦</h1>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <p class="text-gray-600 mb-4">
+            Prototype environment for long-form AI writing.
+        </p>
+
+        <div class="space-y-4">
+            <textarea id="prompt" class="w-full border rounded p-3" rows="4" placeholder="Enter prompt..."></textarea>
+
+            <button onclick="generate()" class="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                Generate
+            </button>
+
+            <div>
+                <h2 class="font-semibold mb-2">Result:</h2>
+                <pre id="result" class="bg-gray-100 p-3 rounded text-sm whitespace-pre-wrap"></pre>
+            </div>
+        </div>
+
+        <script>
+            async function generate() {
+                const prompt = document.getElementById('prompt').value;
+                const resultEl = document.getElementById('result');
+                resultEl.textContent = 'Generating...';
+
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await response.json();
+                resultEl.textContent = data.text;
+            }
+        </script>
+    </div>
+</div>
+
+</body>
+</html>
