@@ -11,43 +11,51 @@
 <div class="max-w-3xl mx-auto px-4 py-8">
     <h1 class="text-2xl md:text-3xl font-bold mb-6">AI Writer Lab ✦</h1>
 
-    <div class="bg-white shadow rounded-lg p-6">
-        <p class="text-gray-600 mb-4">
-            Prototype environment for long-form AI writing.
-        </p>
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+        <h2 class="text-lg font-semibold mb-3">Create New Project</h2>
 
-        <div class="space-y-4">
-            <textarea id="prompt" class="w-full border rounded p-3" rows="4" placeholder="Enter prompt..."></textarea>
-
-            <button onclick="generate()" class="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                Generate
+        <div class="space-y-3">
+            <input id="project-title" class="w-full border rounded p-2" placeholder="Project title" />
+            <textarea id="project-description" class="w-full border rounded p-2" rows="3" placeholder="Project description"></textarea>
+            <button onclick="createProject()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                Create Project
             </button>
-
-            <div>
-                <h2 class="font-semibold mb-2">Result:</h2>
-                <pre id="result" class="bg-gray-100 p-3 rounded text-sm whitespace-pre-wrap"></pre>
-            </div>
         </div>
-
-        <script>
-            async function generate() {
-                const prompt = document.getElementById('prompt').value;
-                const resultEl = document.getElementById('result');
-                resultEl.textContent = 'Generating...';
-
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ prompt })
-                });
-
-                const data = await response.json();
-                resultEl.textContent = data.text;
-            }
-        </script>
     </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-3">Existing Projects</h2>
+
+        <ul class="space-y-2">
+            {% for project in projects %}
+                <li>
+                    <a class="text-blue-600" href="projects/{{ project.id }}">
+                        {{ project.title }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="text-gray-500">No projects yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <script>
+        async function createProject() {
+            const title = document.getElementById('project-title').value;
+            const description = document.getElementById('project-description').value;
+
+            const response = await fetch('projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, description })
+            });
+
+            const data = await response.json();
+            window.location.href = 'projects/' + data.id;
+        }
+    </script>
 </div>
 
 </body>
