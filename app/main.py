@@ -57,8 +57,10 @@ class ProjectCreate(BaseModel):
 # ---------- Routes ----------
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Project))
-    projects = result.scalars().all()
+    from app.infrastructure.repositories.project_repository import ProjectRepository
+
+    project_repo = ProjectRepository(db)
+    projects = await project_repo.list_all()
 
     return templates.TemplateResponse(
         "home.html",
@@ -84,12 +86,15 @@ async def create_project(data: ProjectCreate, db: AsyncSession = Depends(get_db)
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def get_project(project_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Project).where(Project.id == project_id))
-    project = result.scalar_one_or_none()
+    from app.infrastructure.repositories.project_repository import ProjectRepository
+
+    project_repo = ProjectRepository(db)
+    project = await project_repo.get_by_id(project_id)
 
     if not project:
         return HTMLResponse(content="Project not found", status_code=404)
 
+    # Temporary: keep chapter query here until ChapterRepository fully integrated
     result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
     chapters = result.scalars().all()
 
