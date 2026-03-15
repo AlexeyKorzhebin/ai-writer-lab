@@ -169,28 +169,12 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
     from sqlalchemy.orm import selectinload
 
     from app.infrastructure.repositories.chapter_repository import ChapterRepository
+    from app.application.use_cases.generate_chapter import GenerateChapterUseCase
 
     chapter_repo = ChapterRepository(db)
-    chapter = await chapter_repo.get_with_project(chapter_id)
+    use_case = GenerateChapterUseCase(chapter_repo, llm)
 
-    if not chapter:
-        return {"error": "Chapter not found"}
-
-    logger.info(f"LLM dependency resolved to: {llm}")
-
-    if not llm:
-        logger.warning("LLM is None — marking as not configured")
-        chapter.content = "LLM not configured"
-    else:
-        logger.info("Calling WriterPipeline.generate_chapter")
-        pipeline = WriterPipeline(llm)
-        content, summary = await pipeline.generate_chapter(chapter.project, chapter)
-        logger.info("Generation completed successfully")
-        chapter.content = content
-        chapter.summary = summary
-
-    await chapter_repo.save(chapter)
-    return {"status": "ok"}
+    return await use_case.execute(chapter_id)
 
 @app.post("/projects/{project_id}/review/{chapter_id}")
 async def review_chapter(project_id: int, chapter_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
