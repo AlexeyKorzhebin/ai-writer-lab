@@ -40,6 +40,9 @@
             <button onclick="generateBookPlan()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition">
                 Generate Improvement Plan
             </button>
+            <button onclick="executeBookRewrite()" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition">
+                Execute Book Rewrite
+            </button>
             <a href="../projects/{{ project.id }}/export/epub" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
                 Export EPUB
             </a>
@@ -144,6 +147,19 @@
         });
         const data = await response.json();
         box.innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function executeBookRewrite() {
+        const box = document.getElementById('book-analysis-output');
+        box.innerText = 'Executing controlled book rewrite...';
+
+        const response = await fetch('../projects/{{ project.id }}/book-rewrite', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        box.innerText = JSON.stringify(data, null, 2);
+
+        window.location.reload();
     }
     </script>
 </div>

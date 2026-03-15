@@ -19,6 +19,7 @@ from app.core.agents.editor import EditorAgent
 from app.core.agents.orchestrator import OrchestratorAgent
 from app.core.agents.consistency import ConsistencyAgent
 from app.core.agents.book_orchestrator import BookOrchestrator
+from app.core.agents.book_rewrite_orchestrator import BookRewriteOrchestrator
 from fastapi.responses import FileResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -275,6 +276,36 @@ async def produce_book_plan(project_id: int, db: AsyncSession = Depends(get_db),
     plan = await orchestrator.produce_book_improvement_plan(project, chapters)
 
     return plan
+
+@app.post("/projects/{project_id}/book-rewrite")
+async def execute_book_rewrite(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    consistency = ConsistencyAgent(llm)
+    book_orchestrator = BookOrchestrator(consistency)
+    plan = await book_orchestrator.produce_book_improvement_plan(project, chapters)
+
+    writer_pipeline = WriterPipeline(llm)
+    reviewer = ReviewAgent(llm)
+    editor = EditorAgent(llm)
+    chapter_orchestrator = OrchestratorAgent(llm, writer_pipeline, reviewer, editor)
+
+    rewrite_orchestrator = BookRewriteOrchestrator(chapter_orchestrator)
+    result_data = await rewrite_orchestrator.execute_plan(project, chapters, plan)
+
+    await db.commit()
+
+    return result_data
 
 @app.post("/projects/{project_id}/generate-outline")
 async def generate_outline(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
