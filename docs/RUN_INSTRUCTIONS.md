@@ -28,22 +28,26 @@ pip install fastapi uvicorn sqlalchemy aiosqlite httpx jinja2 python-multipart o
 
 ## 3. Настройка переменных окружения (LLM)
 
-### Вариант A — OpenAI
+### Production (CAILA — текущая рабочая схема)
+
+В окружении сервера уже присутствует `CAILA_API_KEY`.
+
+Нужно пробросить его в OpenAI-совместимые переменные:
 
 ```bash
-export OPENAI_API_KEY=sk-...
+export OPENAI_API_KEY=$CAILA_API_KEY
+export OPENAI_BASE_URL=https://caila.io/api/adapters/openai/v1
 ```
 
-### Вариант B — CAILA OpenAI-compatible
+Проверка:
 
 ```bash
-export OPENAI_API_KEY=<CAILA_API_KEY>
-export OPENAI_BASE_URL=https://caila.io/api/adapters/openai/v1
+echo $OPENAI_API_KEY
 ```
 
 ---
 
-## 4. Запуск сервера
+## 4. Запуск сервера (локально)
 
 ```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8017
@@ -103,3 +107,89 @@ uvicorn app.main:app --reload
 ```
 
 Автоперезагрузка включена.
+
+---
+
+# 9. Production запуск через nginx
+
+## Текущая рабочая схема
+
+- Uvicorn слушает: `127.0.0.1:8017`
+- nginx проксирует: `/writer/`
+- Домен: `https://elion.black-castle.ru/writer/`
+
+### Конфигурация nginx
+
+Файл:
+
+```
+/etc/nginx/sites-enabled/elion.black-castle.ru
+```
+
+Ключевой блок:
+
+```nginx
+location /writer/ {
+    rewrite ^/writer/(.*)$ /$1 break;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    proxy_pass http://127.0.0.1:8017;
+}
+```
+
+### Запуск production
+
+1. Запустить uvicorn:
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8017
+```
+
+2. Проверить nginx:
+
+```bash
+sudo systemctl status nginx
+```
+
+3. Открыть в браузере:
+
+```
+https://elion.black-castle.ru/writer/
+```
+
+---
+
+## SSL
+
+- Let's Encrypt
+- Сертификаты находятся в:
+
+```
+/etc/letsencrypt/live/elion.black-castle.ru/
+```
+
+---
+
+## Проверка работы прокси
+
+Если приложение работает локально, но не работает через домен:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
+
+## Важное замечание
+
+Текущая схема использует rewrite `/writer/` → `/`.
+В будущем рекомендуется добавить `root_path="/writer"` в FastAPI для полной production-совместимости.
