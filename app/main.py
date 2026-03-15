@@ -40,8 +40,10 @@ async def on_startup():
 
 def get_llm():
     try:
+        logger.info("Initializing OpenAIAdapter")
         return OpenAIAdapter()
-    except Exception:
+    except Exception as e:
+        logger.exception("Failed to initialize OpenAIAdapter")
         return None
 
 # ---------- Schemas ----------
