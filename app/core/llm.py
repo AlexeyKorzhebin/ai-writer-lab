@@ -12,9 +12,27 @@ class OpenAIAdapter:
         model: Optional[str] = None,
         timeout: float = 60.0,
     ):
-        self.base_url = (base_url or os.getenv("LLM_BASE_URL") or "").rstrip("/")
-        self.api_key = api_key or os.getenv("LLM_API_KEY") or ""
-        self.model = model or os.getenv("LLM_MODEL") or "gpt-3.5-turbo"
+        # Use OpenAI-compatible environment variables
+        self.base_url = (
+            base_url
+            or os.getenv("OPENAI_BASE_URL")
+            or os.getenv("LLM_BASE_URL")
+            or ""
+        ).rstrip("/")
+
+        self.api_key = (
+            api_key
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("LLM_API_KEY")
+            or ""
+        )
+
+        self.model = (
+            model
+            or os.getenv("OPENAI_MODEL")
+            or os.getenv("LLM_MODEL")
+            or "gpt-3.5-turbo"
+        )
         self.timeout = timeout
 
         if not self.base_url:
