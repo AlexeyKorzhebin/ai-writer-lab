@@ -177,11 +177,16 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
     if not chapter:
         return {"error": "Chapter not found"}
 
+    logger.info(f"LLM dependency resolved to: {llm}")
+
     if not llm:
+        logger.warning("LLM is None — marking as not configured")
         chapter.content = "LLM not configured"
     else:
+        logger.info("Calling WriterPipeline.generate_chapter")
         pipeline = WriterPipeline(llm)
         content, summary = await pipeline.generate_chapter(chapter.project, chapter)
+        logger.info("Generation completed successfully")
         chapter.content = content
         chapter.summary = summary
 
