@@ -14,6 +14,9 @@ from app.core.writer_pipeline import WriterPipeline
 from app.core.exporter import EPUBExporter
 from app.core.pdf_exporter import PDFExporter
 from app.core.docx_exporter import DOCXExporter
+from app.core.agents.reviewer import ReviewAgent
+from app.core.agents.editor import EditorAgent
+from app.core.agents.orchestrator import OrchestratorAgent
 from fastapi.responses import FileResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -169,6 +172,67 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
 
     await db.commit()
     return {"status": "ok"}
+
+@app.post("/projects/{project_id}/review/{chapter_id}")
+async def review_chapter(project_id: int, chapter_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+
+    if not chapter:
+        return {"error": "Chapter not found"}
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    reviewer = ReviewAgent(llm)
+    review = await reviewer.review_chapter(chapter.project, chapter)
+
+    return {"review": review}
+
+@app.post("/projects/{project_id}/edit/{chapter_id}")
+async def edit_chapter(project_id: int, chapter_id: int, data: dict, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+
+    if not chapter:
+        return {"error": "Chapter not found"}
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    review_text = data.get("review")
+    if not review_text:
+        return {"error": "Review text required"}
+
+    editor = EditorAgent(llm)
+    improved = await editor.apply_improvements(chapter.project, chapter, review_text)
+
+    chapter.content = improved
+    await db.commit()
+
+    return {"status": "improved"}
+
+@app.post("/projects/{project_id}/produce-hq/{chapter_id}")
+async def produce_high_quality(project_id: int, chapter_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+
+    if not chapter:
+        return {"error": "Chapter not found"}
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    writer_pipeline = WriterPipeline(llm)
+    reviewer = ReviewAgent(llm)
+    editor = EditorAgent(llm)
+    orchestrator = OrchestratorAgent(llm, writer_pipeline, reviewer, editor)
+
+    result_data = await orchestrator.produce_high_quality_chapter(chapter.project, chapter)
+
+    await db.commit()
+
+    return result_data
 
 @app.post("/projects/{project_id}/generate-outline")
 async def generate_outline(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):

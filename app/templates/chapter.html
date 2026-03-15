@@ -23,7 +23,19 @@
             <button onclick="regenerateChapter()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
                 Regenerate
             </button>
+            <button onclick="reviewChapter()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                Review
+            </button>
+            <button onclick="applyImprovements()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                Apply Improvements
+            </button>
+            <button onclick="produceHQ()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                Produce High Quality
+            </button>
         </div>
+
+        <div id="review-output" class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap"></div>
+        <div id="hq-output" class="mt-4 text-sm text-gray-700"></div>
     </div>
 </div>
 
@@ -46,6 +58,50 @@
         await fetch('../../{{ project.id }}/generate-chapter/{{ chapter.id }}', {
             method: 'POST'
         });
+
+        window.location.reload();
+    }
+
+    async function reviewChapter() {
+        const reviewBox = document.getElementById('review-output');
+        reviewBox.innerText = 'Reviewing...';
+
+        const response = await fetch('../../{{ project.id }}/review/{{ chapter.id }}', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        reviewBox.innerText = data.review || JSON.stringify(data);
+    }
+
+    async function applyImprovements() {
+        const reviewText = document.getElementById('review-output').innerText;
+        if (!reviewText) {
+            alert('Run review first');
+            return;
+        }
+
+        await fetch('../../{{ project.id }}/edit/{{ chapter.id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ review: reviewText })
+        });
+
+        window.location.reload();
+    }
+
+    async function produceHQ() {
+        const hqBox = document.getElementById('hq-output');
+        hqBox.innerText = 'Producing high quality version...';
+
+        const response = await fetch('../../{{ project.id }}/produce-hq/{{ chapter.id }}', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+        hqBox.innerText = `Iterations: ${data.iterations}, Final Score: ${data.final_score}`;
 
         window.location.reload();
     }
