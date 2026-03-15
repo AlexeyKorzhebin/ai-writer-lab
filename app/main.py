@@ -94,9 +94,10 @@ async def get_project(project_id: int, request: Request, db: AsyncSession = Depe
     if not project:
         return HTMLResponse(content="Project not found", status_code=404)
 
-    # Temporary: keep chapter query here until ChapterRepository fully integrated
-    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
-    chapters = result.scalars().all()
+    from app.infrastructure.repositories.chapter_repository import ChapterRepository
+
+    chapter_repo = ChapterRepository(db)
+    chapters = await chapter_repo.list_by_project(project_id)
 
     return templates.TemplateResponse(
         "project.html",

@@ -20,6 +20,12 @@ class ChapterRepository:
         )
         return result.scalar_one_or_none()
 
+    async def list_by_project(self, project_id: int) -> list[Chapter]:
+        result = await self.db.execute(
+            select(Chapter).where(Chapter.project_id == project_id)
+        )
+        return result.scalars().all()
+
     async def save(self, chapter: Chapter) -> None:
         self.db.add(chapter)
         await self.db.commit()
