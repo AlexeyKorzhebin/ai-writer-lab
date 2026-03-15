@@ -178,19 +178,13 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
 
 @app.post("/projects/{project_id}/review/{chapter_id}")
 async def review_chapter(project_id: int, chapter_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
-    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
-    chapter = result.scalar_one_or_none()
+    from app.infrastructure.repositories.chapter_repository import ChapterRepository
+    from app.application.use_cases.review_chapter import ReviewChapterUseCase
 
-    if not chapter:
-        return {"error": "Chapter not found"}
+    chapter_repo = ChapterRepository(db)
+    use_case = ReviewChapterUseCase(chapter_repo, llm)
 
-    if not llm:
-        return {"error": "LLM not configured"}
-
-    reviewer = ReviewAgent(llm)
-    review = await reviewer.review_chapter(chapter.project, chapter)
-
-    return {"review": review}
+    return await use_case.execute(chapter_id)
 
 @app.post("/projects/{project_id}/edit/{chapter_id}")
 async def edit_chapter(project_id: int, chapter_id: int, data: dict, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
