@@ -17,6 +17,8 @@ from app.core.docx_exporter import DOCXExporter
 from app.core.agents.reviewer import ReviewAgent
 from app.core.agents.editor import EditorAgent
 from app.core.agents.orchestrator import OrchestratorAgent
+from app.core.agents.consistency import ConsistencyAgent
+from app.core.agents.book_orchestrator import BookOrchestrator
 from fastapi.responses import FileResponse
 
 logging.basicConfig(level=logging.INFO)
@@ -233,6 +235,46 @@ async def produce_high_quality(project_id: int, chapter_id: int, db: AsyncSessio
     await db.commit()
 
     return result_data
+
+@app.post("/projects/{project_id}/consistency")
+async def analyze_consistency(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    agent = ConsistencyAgent(llm)
+    analysis = await agent.analyze_book(project, chapters)
+
+    return analysis
+
+@app.post("/projects/{project_id}/book-plan")
+async def produce_book_plan(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    if not llm:
+        return {"error": "LLM not configured"}
+
+    consistency = ConsistencyAgent(llm)
+    orchestrator = BookOrchestrator(consistency)
+
+    plan = await orchestrator.produce_book_improvement_plan(project, chapters)
+
+    return plan
 
 @app.post("/projects/{project_id}/generate-outline")
 async def generate_outline(project_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):

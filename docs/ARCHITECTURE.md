@@ -79,14 +79,24 @@ Export layer is isolated from generation layer.
 
 ---
 
-## 6. Future Directions
-- ConsistencyAgent (cross-chapter logic)
-- FactCheckAgent
-- Full-book quality pass
-- Versioning with rollback
-- Automated book-level orchestration
+## 6. Multi-Level Agent Hierarchy
+
+Level 1 — Chapter Agents
+- WriterPipeline
+- ReviewAgent
+- EditorAgent
+- OrchestratorAgent
+
+Level 2 — Book Agents
+- ConsistencyAgent (analysis)
+- BookOrchestrator (plan generation)
+
+Level 3 — Future Strategic Layer
+- Automated Book Rewrite Orchestrator
+- Cross-Agent Memory Graph
+- Enterprise Knowledge Layer
 
 ---
 
 System classification:
-Multi-agent controlled LLM writing engine with quality gate orchestration.
+Hierarchical multi-agent LLM writing system with structured inter-agent protocol and bounded orchestration.
