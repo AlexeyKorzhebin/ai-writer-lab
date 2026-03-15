@@ -162,15 +162,10 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
     # Eager load project to avoid async lazy-loading issues
     from sqlalchemy.orm import selectinload
 
-    result = await db.execute(
-        select(Chapter)
-        .options(
-            selectinload(Chapter.project)
-            .selectinload(Project.chapters)
-        )
-        .where(Chapter.id == chapter_id)
-    )
-    chapter = result.scalar_one_or_none()
+    from app.infrastructure.repositories.chapter_repository import ChapterRepository
+
+    chapter_repo = ChapterRepository(db)
+    chapter = await chapter_repo.get_with_project(chapter_id)
 
     if not chapter:
         return {"error": "Chapter not found"}
@@ -188,7 +183,7 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
         chapter.content = content
         chapter.summary = summary
 
-    await db.commit()
+    await chapter_repo.save(chapter)
     return {"status": "ok"}
 
 @app.post("/projects/{project_id}/review/{chapter_id}")
