@@ -48,11 +48,22 @@
 
 ---
 
-# V. Multi-Chapter Consistency
+# V. Multi-Chapter Consistency ✅ (2026-03-15 verified after Domain Refactor)
 
-1. Создать 2–3 главы
-2. Запустить Consistency
-3. Проверить корректность анализа
+Сценарий выполнен:
+- Создано 4 главы (Intro, Architecture, Testing, Deployment)
+- Для каждой выполнена генерация
+- Запущен Analyze Book
+
+Проверено:
+- Нет 500 ошибок
+- Нет MissingGreenlet
+- Нет AttributeError
+- Entity-based логика корректна
+- Ответ consistency-агента получен
+- Логи сервиса без ошибок (200 OK)
+
+Статус: ✅ ЗАКРЫТО
 
 ---
 

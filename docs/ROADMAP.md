@@ -142,12 +142,16 @@
 
 # 7. Приоритет на ближайшие 2 спринта
 
-Sprint 1:
+Sprint 1 ✅ COMPLETED (2026-03-15):
 - Remove create_all
 - Repository layer
-- Structured config
+- UseCase layer
+- Domain entities
+- LLM interface
+- ORM fully isolated
+- Consistency agent verified after refactor
 
-Sprint 2:
+Sprint 2 (next):
 - Vector memory
 - Iterative drafting loop
 - Versioning
