@@ -159,7 +159,17 @@ async def create_chapter(project_id: int, data: dict, db: AsyncSession = Depends
 
 @app.post("/projects/{project_id}/generate-chapter/{chapter_id}")
 async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = Depends(get_db), llm=Depends(get_llm)):
-    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    # Eager load project to avoid async lazy-loading issues
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(Chapter)
+        .options(
+            selectinload(Chapter.project)
+            .selectinload(Project.chapters)
+        )
+        .where(Chapter.id == chapter_id)
+    )
     chapter = result.scalar_one_or_none()
 
     if not chapter:

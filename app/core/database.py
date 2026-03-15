@@ -12,6 +12,9 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
+# Ensure all models are registered in metadata
+from app.core import models  # noqa: F401
+
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
         yield session
