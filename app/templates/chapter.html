@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ chapter.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <a href="../../{{ project.id }}" class="text-blue-600">← Back to project</a>
+
+    <h1 class="text-2xl font-bold mt-4 mb-4">{{ chapter.title }}</h1>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <textarea id="chapter-content" class="w-full border rounded p-3" rows="20">{{ chapter.content or '' }}</textarea>
+
+        <div class="mt-4 space-x-2">
+            <button onclick="saveChapter()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Save
+            </button>
+            <button onclick="regenerateChapter()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                Regenerate
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function saveChapter() {
+        const content = document.getElementById('chapter-content').value;
+
+        await fetch('../../{{ project.id }}/chapters/{{ chapter.id }}/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content })
+        });
+
+        alert('Saved');
+    }
+
+    async function regenerateChapter() {
+        await fetch('../../{{ project.id }}/generate-chapter/{{ chapter.id }}', {
+            method: 'POST'
+        });
+
+        window.location.reload();
+    }
+</script>
+
+</body>
+</html>

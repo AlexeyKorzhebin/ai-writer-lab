@@ -10,6 +10,11 @@ import logging
 from app.core.llm import OpenAIAdapter
 from app.core.database import Base, engine, get_db
 from app.core.models import Project, Chapter
+from app.core.writer_pipeline import WriterPipeline
+from app.core.exporter import EPUBExporter
+from app.core.pdf_exporter import PDFExporter
+from app.core.docx_exporter import DOCXExporter
+from fastapi.responses import FileResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +45,8 @@ class ProjectCreate(BaseModel):
     model_name: str | None = None
     temperature: str | None = None
     max_tokens: str | None = None
+    author_name: str | None = None
+    author_style: str | None = None
 
 # ---------- Routes ----------
 @app.get("/", response_class=HTMLResponse)
@@ -60,6 +67,8 @@ async def create_project(data: ProjectCreate, db: AsyncSession = Depends(get_db)
         model_name=data.model_name,
         temperature=data.temperature,
         max_tokens=data.max_tokens,
+        author_name=data.author_name,
+        author_style=data.author_style,
     )
     db.add(project)
     await db.commit()
@@ -82,6 +91,52 @@ async def get_project(project_id: int, request: Request, db: AsyncSession = Depe
         "project.html",
         {"request": request, "project": project, "chapters": chapters}
     )
+
+@app.get("/projects/{project_id}/chapters/{chapter_id}", response_class=HTMLResponse)
+async def get_chapter(project_id: int, chapter_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return HTMLResponse(content="Project not found", status_code=404)
+
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+
+    if not chapter:
+        return HTMLResponse(content="Chapter not found", status_code=404)
+
+    return templates.TemplateResponse(
+        "chapter.html",
+        {"request": request, "project": project, "chapter": chapter}
+    )
+
+@app.post("/projects/{project_id}/chapters/{chapter_id}/update")
+async def update_chapter(project_id: int, chapter_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+
+    if not chapter:
+        return {"error": "Chapter not found"}
+
+    chapter.content = data.get("content")
+    await db.commit()
+
+    return {"status": "saved"}
+
+@app.post("/projects/{project_id}/update-author")
+async def update_author(project_id: int, data: dict, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    project.author_name = data.get("author_name")
+    project.author_style = data.get("author_style")
+
+    await db.commit()
+    return {"status": "updated"}
 
 @app.post("/projects/{project_id}/chapters")
 async def create_chapter(project_id: int, data: dict, db: AsyncSession = Depends(get_db)):
@@ -107,13 +162,10 @@ async def generate_chapter(project_id: int, chapter_id: int, db: AsyncSession = 
     if not llm:
         chapter.content = "LLM not configured"
     else:
-        prompt = f"Write a detailed book chapter titled '{chapter.title}'."
-
-        temperature = float(chapter.project.temperature) if chapter.project.temperature else None
-        max_tokens = int(chapter.project.max_tokens) if chapter.project.max_tokens else None
-
-        content = await llm.generate(prompt=prompt)
+        pipeline = WriterPipeline(llm)
+        content, summary = await pipeline.generate_chapter(chapter.project, chapter)
         chapter.content = content
+        chapter.summary = summary
 
     await db.commit()
     return {"status": "ok"}
@@ -147,7 +199,8 @@ Return ONLY valid JSON in the following format:
     temperature = float(project.temperature) if project.temperature else None
     max_tokens = int(project.max_tokens) if project.max_tokens else None
 
-    outline_text = await llm.generate(prompt=prompt)
+    pipeline = WriterPipeline(llm)
+    outline_text = await pipeline.generate_outline(project)
 
     try:
         outline_data = json.loads(outline_text)
@@ -168,3 +221,51 @@ Return ONLY valid JSON in the following format:
     await db.commit()
 
     return {"status": "structured outline generated"}
+
+@app.get("/projects/{project_id}/export/epub")
+async def export_epub(project_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    exporter = EPUBExporter()
+    file_path = exporter.export_project(project, chapters)
+
+    return FileResponse(file_path, media_type="application/epub+zip", filename=f"{project.title}.epub")
+
+@app.get("/projects/{project_id}/export/pdf")
+async def export_pdf(project_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    exporter = PDFExporter()
+    file_path = exporter.export_project(project, chapters)
+
+    return FileResponse(file_path, media_type="application/pdf", filename=f"{project.title}.pdf")
+
+@app.get("/projects/{project_id}/export/docx")
+async def export_docx(project_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        return {"error": "Project not found"}
+
+    result = await db.execute(select(Chapter).where(Chapter.project_id == project_id))
+    chapters = result.scalars().all()
+
+    exporter = DOCXExporter()
+    file_path = exporter.export_project(project, chapters)
+
+    return FileResponse(file_path, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document", filename=f"{project.title}.docx")

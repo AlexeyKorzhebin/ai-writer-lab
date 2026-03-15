@@ -17,6 +17,8 @@
         <div class="space-y-3">
             <input id="project-title" class="w-full border rounded p-2" placeholder="Project title" />
             <textarea id="project-description" class="w-full border rounded p-2" rows="3" placeholder="Project description"></textarea>
+            <input id="project-author" class="w-full border rounded p-2" placeholder="Author name" />
+            <textarea id="project-style" class="w-full border rounded p-2" rows="3" placeholder="Author style / tone of voice"></textarea>
             <button onclick="createProject()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
                 Create Project
             </button>
@@ -43,13 +45,15 @@
         async function createProject() {
             const title = document.getElementById('project-title').value;
             const description = document.getElementById('project-description').value;
+            const author_name = document.getElementById('project-author').value;
+            const author_style = document.getElementById('project-style').value;
 
             const response = await fetch('projects', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ title, description })
+                body: JSON.stringify({ title, description, author_name, author_style })
             });
 
             const data = await response.json();
