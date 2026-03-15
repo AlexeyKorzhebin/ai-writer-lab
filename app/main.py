@@ -30,11 +30,9 @@ app = FastAPI(title="AI Writer Lab")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# ---------- Init DB ----------
-@app.on_event("startup")
-async def on_startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# ---------- Database ----------
+# Schema is managed via Alembic migrations.
+# Do NOT use Base.metadata.create_all() in production.
 
 # ---------- LLM Adapter (Dependency Injection) ----------
 
