@@ -102,6 +102,9 @@ class WorldSpec:
     currency: str = ""               # денежная система
     religions: str = ""              # верования
     history_summary: str = ""        # краткая история мира
+    races: list[dict] = field(default_factory=list)
+    # Каждый элемент: {"name": "Эльфы", "description": "...",
+    #   "traits": ["долгожители", "магия"], "regions": ["Лориэн"]}
 ```
 
 ### 2.3 Расширение SceneSpec
@@ -795,7 +798,7 @@ AI структурирует → WorldSpec + начальные локации 
 
 ---
 
-## 6. Story Workspace — интеграция локаций
+## 7. Story Workspace — интеграция локаций
 
 ### 6.1 Left Panel: секция Locations
 
@@ -854,7 +857,7 @@ Dropdown Location — выбор из дерева локаций с поиск�
 
 ---
 
-## 7. Location Consistency Agent
+## 8. Location Consistency Agent
 
 ### 7.1 Назначение
 
@@ -928,7 +931,7 @@ Return JSON:
 
 ---
 
-## 8. AI-генерация локаций
+## 9. AI-генерация локаций
 
 ### 8.1 Generate Locations (в Wizard)
 
@@ -990,7 +993,7 @@ Response: {
 
 ---
 
-## 9. Location Map (визуализация)
+## 10. Location Map (визуализация)
 
 ### 9.1 Простая карта связей
 
@@ -1025,7 +1028,7 @@ Response: {
 
 ---
 
-## 10. Эволюция локаций
+## 11. Эволюция локаций
 
 ### 10.1 Концепция
 
@@ -1063,7 +1066,7 @@ Response: {
 
 ---
 
-## 11. Backend: новые endpoints
+## 12. Backend: новые endpoints
 
 ```
 GET  /projects/{id}/locations                    → список всех локаций (дерево)
@@ -1082,7 +1085,7 @@ POST /projects/{id}/apply-world-preset           → применить прес
 
 ---
 
-## 12. DB Schema (новые таблицы)
+## 13. DB Schema (новые таблицы)
 
 ```sql
 CREATE TABLE locations (
@@ -1121,7 +1124,7 @@ ALTER TABLE scenes ADD COLUMN time_context TEXT DEFAULT '';
 
 ---
 
-## 13. Интеграция с другими модулями
+## 14. Интеграция с другими модулями
 
 ### 13.1 С генерацией текста (WriterPipeline)
 

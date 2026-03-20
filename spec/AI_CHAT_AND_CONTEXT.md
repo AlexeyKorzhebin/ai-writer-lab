@@ -26,12 +26,13 @@ dropdown-автокомплит с доступными элементами.
 
 | Ссылка | Что подтягивает в контекст | Пример |
 |--------|---------------------------|--------|
-| `@scene:N` или `@scene:Title` | Полный текст сцены + метаданные | `@scene:3` или `@scene:Встреча у моста` |
+| `@scene:N` | Полный текст сцены + метаданные. **N — порядковый номер** сцены (1, 2, 3...). Автокомплит показывает `Scene 3: Название`, при выборе вставляется `@scene:3`. | `@scene:3` |
 | `@char:Name` | Полное описание персонажа из NarrativeSpec | `@char:Анна` |
 | `@world` | WorldSpec целиком | `@world` |
+| `@location:Name` | Описание локации из LocationSpec (description + visual_details + atmosphere + текущее состояние) | `@location:Тёмный лес` |
 | `@plot` | CoreIdea (logline, conflict, themes) | `@plot` |
 | `@structure` | StructuralSpec (turning points, climax) | `@structure` |
-| `@chapter:N` | Summary главы (или полный текст, если указать `@chapter:3:full`) | `@chapter:2` |
+| `@chapter:N` | Summary главы (N — порядковый номер). `@chapter:3:full` для полного текста. Глава = группа сцен. | `@chapter:2` |
 | `@prev` | Полный текст предыдущей сцены | `@prev` |
 | `@selection` | Текущий выделенный фрагмент в редакторе | `@selection` |
 | `@style` | Author style profile | `@style` |
@@ -57,6 +58,10 @@ dropdown-автокомплит с доступными элементами.
 │    Дмитрий (antagonist)         │
 │    Иван (mentor)                │
 │  🌍 World                        │
+│  📍 Locations                     │
+│    Тёмный лес (natural)          │
+│    Замок Ривен (building)         │
+│    Мост через Серебрянку (road)   │
 │  📖 Plot                         │
 │  🏗️ Structure                    │
 │  📝 Chapters                     │
@@ -109,9 +114,11 @@ dropdown-автокомплит с доступными элементами.
 ├─────────────────────────────────────────────┤
 │ AUTO-CONTEXT (автоматический)               │
 │  - Текущая сцена (текст + метаданные)       │
+│  - Локация текущей сцены (description +     │
+│    visual_details + текущее состояние)       │
 │  - Предыдущая сцена (summary)               │
 │  - CoreIdea (logline, genre, conflict)      │
-│  ~1,000–3,000 tokens                        │
+│  ~1,500–4,000 tokens                        │
 ├─────────────────────────────────────────────┤
 │ PINNED CONTEXT (закреплённый пользователем) │
 │  - Элементы, которые пользователь            │
@@ -140,7 +147,7 @@ dropdown-автокомплит с доступными элементами.
 ```
 Общий лимит модели (напр. 128k для GPT-4-turbo)
  └── System prompt:     ~500 tokens  (фикс.)
- └── Auto-context:      ~1,000–3,000 tokens  (авто)
+ └── Auto-context:      ~1,500–4,000 tokens  (авто, вкл. локацию)
  └── Pinned context:    ~0–4,000 tokens  (пользователь)
  └── @ References:      ~0–4,000 tokens  (пользователь)
  └── Chat history:      ~0–4,000 tokens  (авто, сжимается)
@@ -350,7 +357,7 @@ Dropdown "History" показывает предыдущие задачи:
 │                                             │
 │  Quick actions:                             │
 │  [Continue scene] [Add dialogue]            │
-│  [Describe setting] [Review]                │
+│  [Describe setting] [Review] [Illustrate]   │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
@@ -375,8 +382,17 @@ Dropdown "History" показывает предыдущие задачи:
 
 **Quick actions:** предустановленные действия (кнопки), зависящие от контекста:
 - Если сцена пустая: [Generate scene] [Suggest variants]
-- Если сцена написана: [Continue] [Add dialogue] [Describe setting] [Review]
+- Если сцена написана: [Continue] [Add dialogue] [Describe setting]
+- Всегда доступны: **[Review]**, **[Illustrate]**
 - Если есть review: [Apply fixes] [Improve style]
+
+> **[Review]** запускает ревью сцены. Результат отображается как форматированное
+> AI-сообщение в чате: Score badge, список issues, кнопки [Apply Fix].
+>
+> **[Illustrate]** открывает Illustration sliding panel (overlay поверх правой
+> панели). См. [ILLUSTRATION_PROMPT_GENERATOR.md](ILLUSTRATION_PROMPT_GENERATOR.md).
+> Правая панель НЕ имеет вкладок — это единый чат. Review и Illustration
+> интегрированы через Quick Actions и sliding panel.
 
 ---
 

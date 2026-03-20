@@ -60,9 +60,12 @@ Per-project setting > Global setting > .env default
 |----------|----------|-------------|
 | OpenAI | `https://api.openai.com/v1` | Стандартный API |
 | CAILA | `https://caila.io/api/adapters/openai/v1` | OpenAI-compatible |
-| Anthropic | `https://api.anthropic.com/v1` | Claude models |
 | Local (Ollama) | `http://localhost:11434/v1` | Локальные модели |
 | Custom | Любой URL | OpenAI-compatible endpoint |
+
+> **Примечание:** поддерживаются только OpenAI-compatible API. Провайдеры с
+> собственным форматом API (Anthropic) требуют отдельного адаптера — планируется
+> в будущих версиях.
 
 ### 3.2 UI-предустановки провайдеров
 
@@ -78,10 +81,6 @@ providers:
     name: "CAILA"
     base_url: "https://caila.io/api/adapters/openai/v1"
     models: ["gpt-4", "gpt-3.5-turbo"]
-  anthropic:
-    name: "Anthropic"
-    base_url: "https://api.anthropic.com/v1"
-    models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
   ollama:
     name: "Ollama (Local)"
     base_url: "http://localhost:11434/v1"
@@ -124,9 +123,10 @@ Endpoint: `POST /settings/test-connection`
 ```python
 class Settings(BaseSettings):
     # ... existing ...
-    draft_model: str = ""       # fallback to openai_model
-    refinement_model: str = ""  # fallback to openai_model
-    review_model: str = ""      # fallback to openai_model
+    draft_model: str = ""          # fallback to openai_model
+    refinement_model: str = ""     # fallback to openai_model
+    review_model: str = ""         # fallback to openai_model
+    illustration_model: str = ""   # fallback to openai_model
 ```
 
 В `OpenAIAdapter` — метод `call()` принимает параметр `purpose`:

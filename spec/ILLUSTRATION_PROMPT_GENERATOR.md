@@ -17,8 +17,10 @@ Illustration Prompt Generator — модуль для создания текс�
 
 ```
 1. Автор работает в Story Workspace (центральная панель — текст сцены)
-2. Выделяет фрагмент текста ИЛИ нажимает кнопку "Illustrate Scene"
-3. Открывается панель Illustration Prompt Generator
+2. Выделяет фрагмент текста ИЛИ нажимает кнопку [Illustrate] (Quick Action в чате
+   или кнопка в центральной панели)
+3. Открывается **sliding panel** — overlay поверх правой панели (AI Chat).
+   Чат остаётся под ним, к нему можно вернуться кнопкой ←.
 4. AI анализирует фрагмент/сцену и предлагает:
    - Вариант A — визуальная интерпретация (описание сцены)
    - Вариант B — альтернативная композиция
@@ -28,7 +30,9 @@ Illustration Prompt Generator — модуль для создания текс�
 6. Выбирает шаблон промпта (dropdown)
 7. Нажимает "Generate Prompt"
 8. Система подставляет описание в шаблон промпта → финальный текст
-9. Автор копирует промпт или сохраняет к сцене
+9. Автор копирует промпт для использования во внешнем генераторе
+10. После генерации картинки во внешнем сервисе — загружает её через
+    [Upload Image] и вставляет в текст через [Insert into Scene]
 ```
 
 ---
@@ -482,3 +486,73 @@ Mood: solitude, tension
 Опция: переключатель языка промпта (RU/EN) в UI.
 
 AI-описания вариантов показываются на **языке интерфейса** (русском), а финальный prompt — на английском.
+
+---
+
+## 11. Загрузка и встраивание иллюстраций
+
+### 11.1 Источник изображений
+
+MVP: только **загрузка** (Upload). Автор генерирует картинку во внешнем сервисе
+(Midjourney, DALL-E, Kandinsky / z-image, Stable Diffusion) по промпту из
+Illustration Prompt Generator, затем загружает файл в систему.
+
+### 11.2 Upload flow
+
+1. В sliding panel или через кнопку [Insert img] в центральной панели
+2. Drag & drop файла или нажатие [Upload Image] → file picker
+3. Поддерживаемые форматы: PNG, JPG, WebP (макс. 10 MB)
+4. Изображение сохраняется в `uploads/projects/{project_id}/illustrations/`
+5. В БД создаётся запись `Illustration` с привязкой к сцене и промпту
+
+### 11.3 Inline-маркеры в тексте
+
+Иллюстрации встраиваются в текст сцены как Markdown-маркеры:
+
+```markdown
+Анна стояла на мосту, глядя вниз на тёмную воду.
+
+![Анна на мосту в тумане](illustrations/bridge_scene_01.png)
+
+— Я не вернусь, — сказала она тихо.
+```
+
+**В редакторе:** маркер отображается как превью картинки (thumbnail inline).
+**При экспорте:** картинка вставляется в документ (MD/PDF/EPUB) в указанной позиции.
+
+### 11.4 Вставка в текст
+
+Кнопка **[Insert into Scene]** в sliding panel:
+1. Вставляет маркер `![caption](path)` в позицию курсора в центральной панели
+2. Если курсор не установлен — вставляет в конец текста сцены
+
+Кнопка **[Insert img]** в центральной панели:
+1. Показывает список загруженных иллюстраций для текущей сцены
+2. При выборе — вставляет маркер в позицию курсора
+
+### 11.5 Хранение
+
+```sql
+CREATE TABLE illustrations (
+    id INTEGER PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id),
+    scene_id INTEGER REFERENCES scenes(id),
+    prompt_id INTEGER REFERENCES illustration_prompts(id),
+    filename TEXT NOT NULL,
+    filepath TEXT NOT NULL,
+    caption TEXT DEFAULT '',
+    mime_type TEXT DEFAULT 'image/png',
+    file_size INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 11.6 API
+
+```
+POST   /projects/{id}/illustrations/upload   — загрузка файла (multipart)
+GET    /projects/{id}/illustrations          — список иллюстраций проекта
+GET    /projects/{id}/scenes/{sid}/illustrations — иллюстрации сцены
+DELETE /projects/{id}/illustrations/{iid}    — удаление
+GET    /uploads/projects/{id}/illustrations/{filename} — файл картинки
+```
