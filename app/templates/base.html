@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" x-data="{ sidebarOpen: true }" :class="{ 'dark': ThemeManager.isDark }">
+<html lang="ru" class="h-full" x-data="{ sidebarOpen: true }">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,11 +19,11 @@
   <script src="/static/js/app.js"></script>
   {% block head %}{% endblock %}
 </head>
-<body class="h-screen flex overflow-hidden" style="background:var(--bg-primary);color:var(--text-primary)">
+<body class="h-full min-h-0 flex flex-row overflow-hidden" style="background:var(--bg-primary);color:var(--text-primary)">
 
   <!-- Sidebar -->
-  <aside class="sidebar flex flex-col h-full transition-all duration-300 flex-shrink-0"
-         :class="sidebarOpen ? 'w-60' : 'w-0 -ml-60 md:w-16 md:ml-0'"
+  <aside class="sidebar flex flex-col h-full min-h-0 shrink-0 transition-[width,margin] duration-300 ease-out overflow-hidden"
+         :class="sidebarOpen ? 'w-60' : 'w-0 md:w-16'"
          style="background:var(--bg-sidebar);color:var(--text-sidebar)">
     <!-- Logo -->
     <div class="flex items-center gap-2 px-4 h-14 border-b border-white/10 flex-shrink-0">
@@ -54,7 +54,7 @@
   </aside>
 
   <!-- Main area -->
-  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
     <!-- Top Bar -->
     <header class="topbar flex items-center justify-between px-4 h-14 flex-shrink-0 z-10">
       <div class="flex items-center gap-3">
@@ -94,7 +94,7 @@
     </header>
 
     <!-- Content -->
-    <main class="flex-1 overflow-auto" style="background:var(--bg-secondary)">
+    <main class="flex min-h-0 flex-1 flex-col overflow-hidden" style="background:var(--bg-secondary)">
       {% block content %}{% endblock %}
     </main>
   </div>

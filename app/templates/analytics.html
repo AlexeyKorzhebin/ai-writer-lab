@@ -33,7 +33,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="p-6 max-w-6xl mx-auto" x-data="analyticsApp()" x-init="loadData()">
+<div class="mx-auto min-h-0 w-full max-w-6xl flex-1 overflow-y-auto p-6" x-data="analyticsApp()" x-init="loadData()">
 
   <h1 class="text-2xl font-bold mb-6">Аналитика: {{ project.title }}</h1>
 

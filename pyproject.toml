@@ -39,3 +39,6 @@ reload = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "spec: тесты, привязанные к документам в spec/ (см. tests/spec/SPEC_COVERAGE.md)",
+]

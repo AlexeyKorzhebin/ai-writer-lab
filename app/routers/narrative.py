@@ -1,3 +1,4 @@
+import dataclasses
 import os
 
 import yaml
@@ -50,9 +51,16 @@ async def story_workspace(
     if not spec:
         return RedirectResponse(url=f"/projects/{project_id}/story/wizard")
 
+    spec_scenes_plain = [dataclasses.asdict(s) for s in spec.scenes] if spec else []
+
     return templates.TemplateResponse(
         "story_workspace.html",
-        {"request": request, "project": project, "spec": spec},
+        {
+            "request": request,
+            "project": project,
+            "spec": spec,
+            "spec_scenes_plain": spec_scenes_plain,
+        },
     )
 
 

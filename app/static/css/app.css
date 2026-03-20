@@ -80,6 +80,9 @@ body {
 }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--accent);
   color: #fff;
 }
@@ -88,6 +91,9 @@ body {
 }
 
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
@@ -201,14 +207,13 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
-/* Responsive */
-@media (max-width: 1280px) {
-  .sidebar { width: 0 !important; margin-left: -240px !important; }
-}
+/* Responsive: не переопределяем ширину .sidebar через !important — ломает Tailwind/Alpine */
 
 @media (max-width: 768px) {
-  .sidebar { position: fixed; z-index: 50; height: 100%; }
-  .topbar { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .topbar {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
 }
 
 /* Autosave indicator */
