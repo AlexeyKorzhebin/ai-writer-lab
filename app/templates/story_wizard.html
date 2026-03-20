@@ -15,7 +15,7 @@
 <body class="bg-gray-50 min-h-screen">
 
 <div class="max-w-4xl mx-auto px-4 py-8">
-    <a href="../{{ project.id }}" class="text-blue-600">&larr; Back to project</a>
+    <a href="/projects/{{ project.id }}" class="text-blue-600">&larr; Back to project</a>
     <h1 class="text-3xl font-bold mt-4 mb-2">Create Story</h1>
     <p class="text-gray-500 mb-6">{{ project.title }}</p>
 
@@ -295,7 +295,7 @@
 
         const data = collectData();
 
-        const resp = await fetch(`../projects/${projectId}/narrative-spec`, {
+        const resp = await fetch(`/projects/${projectId}/narrative-spec`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -311,19 +311,19 @@
 
         status.textContent = 'Generating scene map...';
 
-        const outlineResp = await fetch(`../projects/${projectId}/narrative-spec/generate-outline`, {
+        const outlineResp = await fetch(`/projects/${projectId}/narrative-spec/generate-outline`, {
             method: 'POST',
         });
         const outlineResult = await outlineResp.json();
 
         if (outlineResult.error) {
             status.textContent = 'Story created. Outline generation failed: ' + outlineResult.error;
-            setTimeout(() => window.location.href = `../projects/${projectId}/story/workspace`, 1500);
+            setTimeout(() => window.location.href = `/projects/${projectId}/story/workspace`, 1500);
             return;
         }
 
         status.textContent = `Story created with ${outlineResult.scene_count} scenes!`;
-        setTimeout(() => window.location.href = `../projects/${projectId}/story/workspace`, 1000);
+        setTimeout(() => window.location.href = `/projects/${projectId}/story/workspace`, 1000);
     }
 
     addCharacter();
