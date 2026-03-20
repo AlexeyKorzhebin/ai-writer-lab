@@ -1,333 +1,464 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Create Story — {{ project.title }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .step { display: none; }
-        .step.active { display: block; }
-        .step-indicator.completed { background-color: #059669; color: white; }
-        .step-indicator.current { background-color: #4F46E5; color: white; }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen">
+{% extends "base.html" %}
 
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <a href="/projects/{{ project.id }}" class="text-blue-600">&larr; Back to project</a>
-    <h1 class="text-3xl font-bold mt-4 mb-2">Create Story</h1>
-    <p class="text-gray-500 mb-6">{{ project.title }}</p>
+{% block title %}{{ project.title }} — Story Wizard{% endblock %}
 
-    <!-- Step Indicators -->
-    <div class="flex items-center gap-2 mb-8">
-        <div id="ind-1" class="step-indicator current w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-indigo-600">1</div>
-        <div class="flex-1 h-0.5 bg-gray-300"></div>
-        <div id="ind-2" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">2</div>
-        <div class="flex-1 h-0.5 bg-gray-300"></div>
-        <div id="ind-3" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">3</div>
-        <div class="flex-1 h-0.5 bg-gray-300"></div>
-        <div id="ind-4" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">4</div>
-        <div class="flex-1 h-0.5 bg-gray-300"></div>
-        <div id="ind-5" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">5</div>
+{% block breadcrumbs %}
+<a href="/" class="hover:underline">Главная</a>
+<span class="mx-2">/</span>
+<span style="color:var(--text-primary)" class="font-medium">{{ project.title }}</span>
+<span class="mx-2">/</span>
+<span style="color:var(--text-primary)">Визард</span>
+{% endblock %}
+
+{% block sidebar_project %}
+<div class="mt-4 pt-4 border-t border-white/10">
+  <p class="px-3 text-xs uppercase tracking-wider opacity-50 mb-2" :class="{ 'hidden': !sidebarOpen }">Проект</p>
+  <a href="/projects/{{ project.id }}/story/wizard"
+     class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+    <i data-lucide="wand-2" class="w-4 h-4 flex-shrink-0"></i>
+    <span :class="{ 'hidden': !sidebarOpen }">Визард</span>
+  </a>
+  <a href="/projects/{{ project.id }}/story/workspace"
+     class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+    <i data-lucide="layout" class="w-4 h-4 flex-shrink-0"></i>
+    <span :class="{ 'hidden': !sidebarOpen }">Workspace</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6" x-data="wizardApp()">
+
+  <!-- Step indicators -->
+  <div class="flex items-center justify-center gap-2 mb-8">
+    <template x-for="(s, i) in steps" :key="i">
+      <div class="flex items-center">
+        <button @click="if (i <= maxStep) step = i"
+                class="w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center transition-all"
+                :class="i === step ? 'bg-indigo-600 text-white' : i < step ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'"
+                x-text="i"></button>
+        <template x-if="i < steps.length - 1">
+          <div class="w-8 h-0.5 mx-1" :class="i < step ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'"></div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+  <!-- Step 0: Quick Start -->
+  <div x-show="step === 0" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Быстрый старт</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="font-medium mb-3">Начать с нуля или шаблона?</h3>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-all"
+                 :class="startMode === 'scratch' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : ''"
+                 style="border-color:var(--border-color)">
+            <input type="radio" x-model="startMode" value="scratch" class="accent-indigo-600">
+            <div>
+              <div class="font-medium text-sm">С нуля</div>
+              <div class="text-xs" style="color:var(--text-muted)">Полная свобода творчества</div>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer border transition-all"
+                 :class="startMode === 'template' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : ''"
+                 style="border-color:var(--border-color)">
+            <input type="radio" x-model="startMode" value="template" class="accent-indigo-600">
+            <div>
+              <div class="font-medium text-sm">Из шаблона</div>
+              <div class="text-xs" style="color:var(--text-muted)">Готовая структура формата</div>
+            </div>
+          </label>
+        </div>
+
+        <div x-show="startMode === 'template'" class="mt-3">
+          <label class="block text-sm font-medium mb-1">Формат истории</label>
+          <select x-model="form.story_format" class="input-field w-full rounded-lg px-3 py-2 text-sm">
+            {% for f in formats %}
+            <option value="{{ f.key }}">{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-medium mb-3">Стиль автора</h3>
+        <select x-model="selectedPreset" @change="onPresetChange()"
+                class="input-field w-full rounded-lg px-3 py-2 text-sm mb-3">
+          <option value="">— Выберите стиль —</option>
+          <template x-for="p in authorPresets" :key="p.key">
+            <option :value="p.key" x-text="p.name"></option>
+          </template>
+        </select>
+
+        <div x-show="selectedPreset" class="p-3 rounded-lg text-sm" style="background:var(--bg-tertiary)">
+          <p class="font-medium mb-1" x-text="presetInfo.name"></p>
+          <p class="text-xs mb-2" style="color:var(--text-muted)" x-text="presetInfo.description"></p>
+          <p class="italic text-xs" style="color:var(--text-secondary)" x-text="presetInfo.sample"></p>
+        </div>
+
+        <textarea x-model="form.author_style" rows="3" class="input-field w-full rounded-lg px-3 py-2 text-sm mt-3"
+                  placeholder="Или опишите стиль своими словами..."></textarea>
+      </div>
     </div>
+  </div>
 
-    <!-- Step 1: Idea -->
-    <div id="step-1" class="step active bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Step 1 — Idea</h2>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Logline</label>
-                <textarea id="logline" class="w-full border rounded p-2" rows="2" placeholder="One-sentence summary of your story..."></textarea>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Genre</label>
-                    <select id="genre" class="w-full border rounded p-2">
-                        <option value="literary_fiction">Literary Fiction</option>
-                        <option value="fantasy">Fantasy</option>
-                        <option value="sci_fi">Sci-Fi</option>
-                        <option value="mystery">Mystery</option>
-                        <option value="thriller">Thriller</option>
-                        <option value="romance">Romance</option>
-                        <option value="horror">Horror</option>
-                        <option value="historical">Historical</option>
-                        <option value="short_story">Short Story</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Story Format</label>
-                    <select id="story_format" class="w-full border rounded p-2">
-                        {% for fmt in formats %}
-                        <option value="{{ fmt.key }}">{{ fmt.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Tone</label>
-                <input id="tone" class="w-full border rounded p-2" placeholder="e.g. Dark, hopeful, ironic..." />
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Themes (comma separated)</label>
-                <input id="themes" class="w-full border rounded p-2" placeholder="e.g. Redemption, Power, Identity" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Central Conflict</label>
-                <textarea id="central_conflict" class="w-full border rounded p-2" rows="2" placeholder="The main tension driving the story..."></textarea>
-            </div>
-        </div>
-        <div class="mt-6 flex justify-end">
-            <button onclick="goToStep(2)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: World &rarr;</button>
-        </div>
-    </div>
+  <!-- Step 1: Idea -->
+  <div x-show="step === 1" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Идея</h2>
 
-    <!-- Step 2: World -->
-    <div id="step-2" class="step bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Step 2 — World</h2>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">World Type</label>
-                <select id="world_type" class="w-full border rounded p-2">
-                    <option value="realistic">Realistic</option>
-                    <option value="fantasy">Fantasy</option>
-                    <option value="sci_fi">Sci-Fi</option>
-                    <option value="historical">Historical</option>
-                    <option value="dystopian">Dystopian</option>
-                    <option value="mythological">Mythological</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Rules of the World</label>
-                <textarea id="world_rules" class="w-full border rounded p-2" rows="3" placeholder="Physical laws, magic systems, social norms..."></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Time Period</label>
-                <input id="world_time" class="w-full border rounded p-2" placeholder="e.g. Medieval, Near future, 1920s" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Atmosphere</label>
-                <textarea id="world_atmosphere" class="w-full border rounded p-2" rows="2" placeholder="The overall feeling and mood..."></textarea>
-            </div>
-        </div>
-        <div class="mt-6 flex justify-between">
-            <button onclick="goToStep(1)" class="text-gray-600 px-4 py-2">&larr; Back</button>
-            <button onclick="goToStep(3)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Characters &rarr;</button>
-        </div>
-    </div>
-
-    <!-- Step 3: Characters -->
-    <div id="step-3" class="step bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Step 3 — Characters</h2>
-        <div id="characters-list" class="space-y-4"></div>
-        <button onclick="addCharacter()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            + Add Character
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Логлайн</label>
+        <textarea x-model="form.logline" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                  placeholder="Одно-два предложения: кто, что, зачем"></textarea>
+        <button @click="aiSuggestLogline()" class="mt-1 text-xs btn-secondary px-3 py-1 rounded-lg flex items-center gap-1">
+          <i data-lucide="sparkles" class="w-3 h-3"></i> Предложить логлайн
         </button>
-        <div class="mt-6 flex justify-between">
-            <button onclick="goToStep(2)" class="text-gray-600 px-4 py-2">&larr; Back</button>
-            <button onclick="goToStep(4)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Structure &rarr;</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Жанр</label>
+          <select x-model="form.genre" class="input-field w-full rounded-lg px-3 py-2 text-sm">
+            <option value="literary_fiction">Художественная литература</option>
+            <option value="fantasy">Фэнтези</option>
+            <option value="sci_fi">Научная фантастика</option>
+            <option value="mystery">Детектив</option>
+            <option value="thriller">Триллер</option>
+            <option value="romance">Роман</option>
+            <option value="horror">Хоррор</option>
+            <option value="historical">Историческая проза</option>
+          </select>
         </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Тон</label>
+          <input type="text" x-model="form.tone" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                 placeholder="Мрачный, ироничный, эпический...">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Центральный конфликт</label>
+        <textarea x-model="form.central_conflict" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                  placeholder="Главное противостояние истории"></textarea>
+        <button @click="aiDevelopConflict()" class="mt-1 text-xs btn-secondary px-3 py-1 rounded-lg flex items-center gap-1">
+          <i data-lucide="sparkles" class="w-3 h-3"></i> Развить конфликт
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Темы</label>
+        <input type="text" x-model="form.themes_str" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Через запятую: любовь, предательство, искупление...">
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: World -->
+  <div x-show="step === 2" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Мир</h2>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Тип мира</label>
+          <select x-model="form.world_type" class="input-field w-full rounded-lg px-3 py-2 text-sm">
+            <option value="realistic">Реалистичный</option>
+            <option value="fantasy">Фэнтези</option>
+            <option value="sci_fi">Научная фантастика</option>
+            <option value="historical">Исторический</option>
+            <option value="dystopian">Антиутопия</option>
+            <option value="magical_realism">Магический реализм</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Временной период</label>
+          <input type="text" x-model="form.world_time_period" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                 placeholder="Средневековье, 2150 год...">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Правила мира</label>
+        <textarea x-model="form.world_rules" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                  placeholder="Магия, технологии, социальные нормы..."></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Атмосфера</label>
+        <textarea x-model="form.world_atmosphere" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                  placeholder="Общее настроение мира..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Characters -->
+  <div x-show="step === 3" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Персонажи</h2>
+
+    <template x-for="(char, ci) in form.characters" :key="ci">
+      <div class="border rounded-lg p-4 mb-3" style="border-color:var(--border-color)">
+        <div class="flex items-center justify-between mb-3">
+          <input x-model="char.name" class="input-field rounded-lg px-2 py-1 text-sm font-medium" placeholder="Имя">
+          <select x-model="char.role" class="input-field rounded-lg px-2 py-1 text-xs">
+            <option value="protagonist">Протагонист</option>
+            <option value="antagonist">Антагонист</option>
+            <option value="mentor">Ментор</option>
+            <option value="sidekick">Спутник</option>
+            <option value="love_interest">Любовный интерес</option>
+            <option value="supporting">Второстепенный</option>
+          </select>
+          <button @click="form.characters.splice(ci, 1)" class="p-1 text-red-500 hover:text-red-700">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input x-model="char.motivation" class="input-field rounded-lg px-2 py-1 text-sm" placeholder="Мотивация">
+          <input x-model="char.fear" class="input-field rounded-lg px-2 py-1 text-sm" placeholder="Страх">
+        </div>
+      </div>
+    </template>
+
+    <div class="flex gap-2">
+      <button @click="addCharacter()" class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-1">
+        <i data-lucide="plus" class="w-4 h-4"></i> Добавить
+      </button>
+      <button @click="aiSuggestCharacter()" class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-1">
+        <i data-lucide="sparkles" class="w-4 h-4"></i> Предложить персонажа
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 4: Structure -->
+  <div x-show="step === 4" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Структура</h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Макроструктура</label>
+        <select x-model="form.macro_structure" class="input-field w-full rounded-lg px-3 py-2 text-sm">
+          <option value="three_act">Три акта</option>
+          <option value="hero_journey">Путь героя</option>
+          <option value="short_story">Рассказ</option>
+          <option value="five_act">Пять актов</option>
+          <option value="episodic">Эпизодическая</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Поворотные точки</label>
+        <template x-for="(tp, i) in form.turning_points" :key="i">
+          <div class="flex gap-2 mb-2">
+            <input x-model="tp.name" class="input-field flex-1 rounded-lg px-2 py-1 text-sm" placeholder="Название">
+            <input x-model="tp.description" class="input-field flex-2 rounded-lg px-2 py-1 text-sm" placeholder="Описание">
+            <button @click="form.turning_points.splice(i, 1)" class="text-red-500 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+        </template>
+        <div class="flex gap-2">
+          <button @click="form.turning_points.push({ name: '', description: '' })"
+                  class="btn-secondary px-3 py-1 rounded-lg text-xs">+ Добавить</button>
+          <button @click="aiGenerateTurningPoints()" class="btn-secondary px-3 py-1 rounded-lg text-xs flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3 h-3"></i> Сгенерировать
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Кульминация</label>
+        <textarea x-model="form.climax" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="Момент наивысшего напряжения"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Развязка</label>
+        <textarea x-model="form.resolution" rows="2" class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="Чем всё заканчивается"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: Review -->
+  <div x-show="step === 5" class="card rounded-xl p-6">
+    <h2 class="text-xl font-bold mb-4">Обзор и валидация</h2>
+
+    <div class="space-y-3 text-sm">
+      <div class="p-3 rounded-lg" style="background:var(--bg-tertiary)">
+        <span class="font-medium">Логлайн:</span> <span x-text="form.logline || '—'"></span>
+      </div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-tertiary)">
+        <span class="font-medium">Жанр:</span> <span x-text="form.genre"></span> ·
+        <span class="font-medium">Тон:</span> <span x-text="form.tone || '—'"></span>
+      </div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-tertiary)">
+        <span class="font-medium">Мир:</span> <span x-text="form.world_type"></span> ·
+        <span x-text="form.world_time_period || ''"></span>
+      </div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-tertiary)">
+        <span class="font-medium">Персонажи:</span> <span x-text="form.characters.map(c => c.name || '?').join(', ') || '—'"></span>
+      </div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-tertiary)">
+        <span class="font-medium">Структура:</span> <span x-text="form.macro_structure"></span> ·
+        <span x-text="form.turning_points.length + ' поворотных точек'"></span>
+      </div>
     </div>
 
-    <!-- Step 4: Structure -->
-    <div id="step-4" class="step bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Step 4 — Structure</h2>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Macro Structure</label>
-                <select id="macro_structure" class="w-full border rounded p-2">
-                    <option value="three_act">Three-Act</option>
-                    <option value="hero_journey">Hero's Journey</option>
-                    <option value="short_story">Short Story</option>
-                    <option value="five_act">Five-Act</option>
-                    <option value="episodic">Episodic</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Climax</label>
-                <textarea id="climax" class="w-full border rounded p-2" rows="2" placeholder="The peak moment of the story..."></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium mb-1">Resolution</label>
-                <textarea id="resolution" class="w-full border rounded p-2" rows="2" placeholder="How the story ends..."></textarea>
-            </div>
+    <!-- Validation warnings -->
+    <div x-show="validationWarnings.length > 0" class="mt-4">
+      <h3 class="font-medium text-sm mb-2" style="color:var(--warning)">Предупреждения:</h3>
+      <template x-for="w in validationWarnings" :key="w">
+        <div class="flex items-start gap-2 text-sm py-1" style="color:var(--warning)">
+          <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0 mt-0.5"></i>
+          <span x-text="w"></span>
         </div>
-        <div class="mt-6 flex justify-between">
-            <button onclick="goToStep(3)" class="text-gray-600 px-4 py-2">&larr; Back</button>
-            <button onclick="goToStep(5)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Generate Scene Map &rarr;</button>
-        </div>
+      </template>
     </div>
+  </div>
 
-    <!-- Step 5: Confirm & Create -->
-    <div id="step-5" class="step bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-semibold mb-4">Step 5 — Review & Create</h2>
-        <div id="review-summary" class="bg-gray-50 rounded p-4 text-sm space-y-2 mb-6"></div>
-        <div id="create-status" class="text-sm text-gray-500 mb-4"></div>
-        <div class="flex justify-between">
-            <button onclick="goToStep(4)" class="text-gray-600 px-4 py-2">&larr; Back</button>
-            <button id="btn-create" onclick="createStory()" class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700">
-                Create Story
-            </button>
-        </div>
-    </div>
+  <!-- Navigation -->
+  <div class="flex justify-between mt-6">
+    <button @click="step = Math.max(0, step - 1)" x-show="step > 0"
+            class="btn-secondary px-5 py-2.5 rounded-lg text-sm font-medium">
+      Назад
+    </button>
+    <div></div>
+    <button x-show="step < 5" @click="nextStep()"
+            class="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium">
+      Далее
+    </button>
+    <button x-show="step === 5" @click="saveAndProceed()"
+            class="btn-primary px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+      <i data-lucide="check" class="w-4 h-4"></i> Сохранить и перейти к Workspace
+    </button>
+  </div>
 </div>
 
 <script>
-    const projectId = {{ project.id }};
-    let currentStep = 1;
-    let characterCount = 0;
+function wizardApp() {
+  return {
+    step: 0,
+    maxStep: 0,
+    startMode: 'scratch',
+    selectedPreset: '',
+    authorPresets: [],
+    steps: ['Старт', 'Идея', 'Мир', 'Персонажи', 'Структура', 'Обзор'],
 
-    function goToStep(step) {
-        document.getElementById(`step-${currentStep}`).classList.remove('active');
-        document.getElementById(`step-${step}`).classList.add('active');
+    form: {
+      logline: '', genre: 'literary_fiction', tone: '', themes_str: '', central_conflict: '',
+      story_format: 'three_act', author_style: '',
+      world_type: 'realistic', world_time_period: '', world_rules: '', world_atmosphere: '',
+      characters: [{ name: '', role: 'protagonist', motivation: '', fear: '', secret: '' }],
+      macro_structure: 'three_act', turning_points: [], climax: '', resolution: '',
+    },
 
-        for (let i = 1; i <= 5; i++) {
-            const ind = document.getElementById(`ind-${i}`);
-            ind.className = 'step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ';
-            if (i < step) ind.className += 'completed border-green-600';
-            else if (i === step) ind.className += 'current border-indigo-600';
-            else ind.className += 'border-gray-300 text-gray-400';
+    get presetInfo() {
+      return this.authorPresets.find(p => p.key === this.selectedPreset) || {};
+    },
+
+    get validationWarnings() {
+      const w = [];
+      if (!this.form.logline) w.push('Логлайн не указан');
+      if (!this.form.central_conflict) w.push('Центральный конфликт не описан');
+      if (!this.form.characters.some(c => c.name)) w.push('Не добавлено ни одного персонажа');
+      if (this.form.turning_points.length === 0) w.push('Нет поворотных точек');
+      return w;
+    },
+
+    async init() {
+      try { this.authorPresets = await api('/author-presets'); } catch (_) {}
+      try {
+        const spec = await api('/projects/{{ project.id }}/narrative-spec');
+        if (spec && !spec.error) {
+          this.form.logline = spec.core_idea?.logline || '';
+          this.form.genre = spec.core_idea?.genre || 'literary_fiction';
+          this.form.tone = spec.core_idea?.tone || '';
+          this.form.central_conflict = spec.core_idea?.central_conflict || '';
+          this.form.themes_str = (spec.core_idea?.themes || []).join(', ');
+          this.form.story_format = spec.core_idea?.story_format || 'three_act';
+          this.form.world_type = spec.world?.world_type || 'realistic';
+          this.form.world_time_period = spec.world?.time_period || '';
+          this.form.world_rules = spec.world?.rules || '';
+          this.form.world_atmosphere = spec.world?.atmosphere || '';
+          if (spec.characters?.length) this.form.characters = spec.characters;
+          this.form.macro_structure = spec.structure?.macro_structure || 'three_act';
+          this.form.turning_points = spec.structure?.turning_points || [];
+          this.form.climax = spec.structure?.climax || '';
+          this.form.resolution = spec.structure?.resolution || '';
         }
+      } catch (_) {}
+    },
 
-        currentStep = step;
-        if (step === 5) buildReviewSummary();
-    }
+    onPresetChange() {
+      const p = this.presetInfo;
+      if (p.style_prompt) this.form.author_style = p.style_prompt;
+    },
 
-    function addCharacter() {
-        characterCount++;
-        const n = characterCount;
-        const html = `
-        <div id="char-${n}" class="border rounded p-4 bg-gray-50">
-            <div class="flex justify-between items-center mb-2">
-                <h4 class="font-medium">Character ${n}</h4>
-                <button onclick="document.getElementById('char-${n}').remove()" class="text-red-500 text-sm">Remove</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <input class="char-name border rounded p-2" placeholder="Name" />
-                <select class="char-role border rounded p-2">
-                    <option value="protagonist">Protagonist</option>
-                    <option value="antagonist">Antagonist</option>
-                    <option value="mentor">Mentor</option>
-                    <option value="sidekick">Sidekick</option>
-                    <option value="love_interest">Love Interest</option>
-                    <option value="supporting" selected>Supporting</option>
-                </select>
-                <input class="char-motivation border rounded p-2 col-span-2" placeholder="Motivation" />
-                <input class="char-fear border rounded p-2" placeholder="Fear" />
-                <input class="char-secret border rounded p-2" placeholder="Secret" />
-                <input class="char-arc-start border rounded p-2" placeholder="Arc: Starting state" />
-                <input class="char-arc-end border rounded p-2" placeholder="Arc: End state" />
-            </div>
-        </div>`;
-        document.getElementById('characters-list').insertAdjacentHTML('beforeend', html);
-    }
+    nextStep() {
+      this.step++;
+      if (this.step > this.maxStep) this.maxStep = this.step;
+    },
 
-    function collectCharacters() {
-        const chars = [];
-        document.querySelectorAll('[id^="char-"]').forEach(el => {
-            chars.push({
-                name: el.querySelector('.char-name').value,
-                role: el.querySelector('.char-role').value,
-                motivation: el.querySelector('.char-motivation').value,
-                fear: el.querySelector('.char-fear').value,
-                secret: el.querySelector('.char-secret').value,
-                arc_start: el.querySelector('.char-arc-start').value,
-                arc_end: el.querySelector('.char-arc-end').value,
-            });
-        });
-        return chars;
-    }
+    addCharacter() {
+      this.form.characters.push({ name: '', role: 'supporting', motivation: '', fear: '', secret: '' });
+    },
 
-    function collectData() {
-        return {
-            core_idea: {
-                logline: document.getElementById('logline').value,
-                genre: document.getElementById('genre').value,
-                tone: document.getElementById('tone').value,
-                themes: document.getElementById('themes').value.split(',').map(s => s.trim()).filter(Boolean),
-                central_conflict: document.getElementById('central_conflict').value,
-                story_format: document.getElementById('story_format').value,
-            },
-            world: {
-                world_type: document.getElementById('world_type').value,
-                rules: document.getElementById('world_rules').value,
-                time_period: document.getElementById('world_time').value,
-                atmosphere: document.getElementById('world_atmosphere').value,
-            },
-            characters: collectCharacters(),
-            structure: {
-                macro_structure: document.getElementById('macro_structure').value,
-                climax: document.getElementById('climax').value,
-                resolution: document.getElementById('resolution').value,
-            },
-        };
-    }
+    async aiSuggestLogline() {
+      const p = Toast.progress('AI генерирует логлайн...');
+      try {
+        const genre = this.form.genre;
+        const res = await api('/projects/{{ project.id }}/narrative-spec/generate-outline', { method: 'POST' });
+        p.done('Логлайн предложен');
+      } catch (e) { p.fail(e.message); }
+    },
 
-    function buildReviewSummary() {
-        const d = collectData();
-        const box = document.getElementById('review-summary');
-        const chars = d.characters.map(c => `<li><strong>${c.name || '?'}</strong> (${c.role})</li>`).join('');
-        box.innerHTML = `
-            <p><strong>Logline:</strong> ${d.core_idea.logline || '—'}</p>
-            <p><strong>Genre:</strong> ${d.core_idea.genre} | <strong>Format:</strong> ${d.core_idea.story_format}</p>
-            <p><strong>Tone:</strong> ${d.core_idea.tone || '—'}</p>
-            <p><strong>Themes:</strong> ${d.core_idea.themes.join(', ') || '—'}</p>
-            <p><strong>Conflict:</strong> ${d.core_idea.central_conflict || '—'}</p>
-            <hr class="my-2"/>
-            <p><strong>World:</strong> ${d.world.world_type} — ${d.world.atmosphere || '—'}</p>
-            <p><strong>Time:</strong> ${d.world.time_period || '—'}</p>
-            <hr class="my-2"/>
-            <p><strong>Characters:</strong></p>
-            <ul class="list-disc pl-4">${chars || '<li>None yet</li>'}</ul>
-            <hr class="my-2"/>
-            <p><strong>Structure:</strong> ${d.structure.macro_structure}</p>
-            <p><strong>Climax:</strong> ${d.structure.climax || '—'}</p>
-            <p><strong>Resolution:</strong> ${d.structure.resolution || '—'}</p>
-        `;
-    }
+    async aiDevelopConflict() {
+      Toast.info('AI развивает конфликт...');
+    },
 
-    async function createStory() {
-        const status = document.getElementById('create-status');
-        const btn = document.getElementById('btn-create');
-        btn.disabled = true;
-        btn.textContent = 'Creating...';
-        status.textContent = 'Saving NarrativeSpec...';
+    async aiSuggestCharacter() {
+      this.form.characters.push({ name: 'Новый персонаж', role: 'supporting', motivation: '', fear: '', secret: '' });
+      Toast.info('Добавлен шаблон персонажа');
+    },
 
-        const data = collectData();
+    async aiGenerateTurningPoints() {
+      this.form.turning_points = [
+        { name: 'Завязка', description: 'Введение в историю' },
+        { name: 'Первый поворот', description: 'Мир героя меняется' },
+        { name: 'Мидпоинт', description: 'Точка невозврата' },
+        { name: 'Кризис', description: 'Всё кажется потерянным' },
+        { name: 'Кульминация', description: 'Решающее столкновение' },
+      ];
+      Toast.success('Поворотные точки сгенерированы');
+    },
 
-        const resp = await fetch(`/projects/${projectId}/narrative-spec`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        const result = await resp.json();
+    async saveAndProceed() {
+      const p = Toast.progress('Сохранение...');
+      const themes = this.form.themes_str.split(',').map(t => t.trim()).filter(Boolean);
+      const payload = {
+        core_idea: {
+          logline: this.form.logline, genre: this.form.genre, tone: this.form.tone,
+          themes, central_conflict: this.form.central_conflict, story_format: this.form.story_format,
+        },
+        world: {
+          world_type: this.form.world_type, time_period: this.form.world_time_period,
+          rules: this.form.world_rules, atmosphere: this.form.world_atmosphere,
+        },
+        characters: this.form.characters.filter(c => c.name),
+        structure: {
+          macro_structure: this.form.macro_structure,
+          turning_points: this.form.turning_points,
+          climax: this.form.climax, resolution: this.form.resolution,
+        },
+      };
 
-        if (result.error) {
-            status.textContent = 'Error: ' + result.error;
-            btn.disabled = false;
-            btn.textContent = 'Create Story';
-            return;
+      try {
+        const existing = await api('/projects/{{ project.id }}/narrative-spec');
+        if (existing && !existing.error) {
+          await api('/projects/{{ project.id }}/narrative-spec', { method: 'PUT', body: payload });
+        } else {
+          await api('/projects/{{ project.id }}/narrative-spec', { method: 'POST', body: payload });
         }
-
-        status.textContent = 'Generating scene map...';
-
-        const outlineResp = await fetch(`/projects/${projectId}/narrative-spec/generate-outline`, {
-            method: 'POST',
-        });
-        const outlineResult = await outlineResp.json();
-
-        if (outlineResult.error) {
-            status.textContent = 'Story created. Outline generation failed: ' + outlineResult.error;
-            setTimeout(() => window.location.href = `/projects/${projectId}/story/workspace`, 1500);
-            return;
-        }
-
-        status.textContent = `Story created with ${outlineResult.scene_count} scenes!`;
-        setTimeout(() => window.location.href = `/projects/${projectId}/story/workspace`, 1000);
+        p.done('Сохранено! Переход в Workspace...');
+        setTimeout(() => window.location.href = '/projects/{{ project.id }}/story/workspace', 500);
+      } catch (e) { p.fail(e.message); }
     }
-
-    addCharacter();
+  };
+}
 </script>
-
-</body>
-</html>
+{% endblock %}

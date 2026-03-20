@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} — Аналитика{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/" class="hover:underline">Главная</a>
+<span class="mx-2">/</span>
+<span style="color:var(--text-primary)" class="font-medium">{{ project.title }}</span>
+<span class="mx-2">/</span>
+<span style="color:var(--text-primary)">Аналитика</span>
+{% endblock %}
+
+{% block sidebar_project %}
+<div class="mt-4 pt-4 border-t border-white/10">
+  <p class="px-3 text-xs uppercase tracking-wider opacity-50 mb-2" :class="{ 'hidden': !sidebarOpen }">Проект</p>
+  <a href="/projects/{{ project.id }}/story/wizard" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+    <i data-lucide="wand-2" class="w-4 h-4 flex-shrink-0"></i>
+    <span :class="{ 'hidden': !sidebarOpen }">Визард</span>
+  </a>
+  <a href="/projects/{{ project.id }}/story/workspace" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+    <i data-lucide="layout" class="w-4 h-4 flex-shrink-0"></i>
+    <span :class="{ 'hidden': !sidebarOpen }">Workspace</span>
+  </a>
+  <a href="/projects/{{ project.id }}/analytics" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+    <i data-lucide="bar-chart-3" class="w-4 h-4 flex-shrink-0"></i>
+    <span :class="{ 'hidden': !sidebarOpen }">Аналитика</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto" x-data="analyticsApp()" x-init="loadData()">
+
+  <h1 class="text-2xl font-bold mb-6">Аналитика: {{ project.title }}</h1>
+
+  <!-- Key metrics -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="card rounded-xl p-4 text-center">
+      <div class="text-3xl font-bold" style="color:var(--accent)">{{ total_scenes }}</div>
+      <div class="text-sm mt-1" style="color:var(--text-secondary)">Сцен всего</div>
+    </div>
+    <div class="card rounded-xl p-4 text-center">
+      <div class="text-3xl font-bold" style="color:var(--success)">{{ scenes_with_content }}</div>
+      <div class="text-sm mt-1" style="color:var(--text-secondary)">Написано</div>
+    </div>
+    <div class="card rounded-xl p-4 text-center">
+      <div class="text-3xl font-bold" style="color:var(--info)">{{ total_words }}</div>
+      <div class="text-sm mt-1" style="color:var(--text-secondary)">Слов</div>
+    </div>
+    <div class="card rounded-xl p-4 text-center">
+      <div class="text-3xl font-bold" style="color:var(--warning)">{{ characters_count }}</div>
+      <div class="text-sm mt-1" style="color:var(--text-secondary)">Персонажей</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="card rounded-xl p-5">
+      <h3 class="font-semibold mb-3">Слов по сценам</h3>
+      <canvas id="wordsChart" height="200"></canvas>
+    </div>
+    <div class="card rounded-xl p-5">
+      <h3 class="font-semibold mb-3">Появления персонажей</h3>
+      <canvas id="charChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="card rounded-xl p-5">
+    <h3 class="font-semibold mb-3">Прогресс написания</h3>
+    <div class="w-full h-4 rounded-full overflow-hidden" style="background:var(--bg-tertiary)">
+      <div class="h-full rounded-full transition-all"
+           style="background:var(--success)"
+           :style="`width: ${totalScenes > 0 ? Math.round(scenesWithContent / totalScenes * 100) : 0}%`"></div>
+    </div>
+    <p class="text-sm mt-2" style="color:var(--text-muted)"
+       x-text="`${scenesWithContent} из ${totalScenes} сцен написано (${totalScenes > 0 ? Math.round(scenesWithContent / totalScenes * 100) : 0}%)`"></p>
+  </div>
+</div>
+
+<script>
+function analyticsApp() {
+  return {
+    totalScenes: {{ total_scenes }},
+    scenesWithContent: {{ scenes_with_content }},
+    data: null,
+
+    async loadData() {
+      try {
+        this.data = await api('/projects/{{ project.id }}/analytics/data');
+        this.$nextTick(() => this.renderCharts());
+      } catch (_) {}
+    },
+
+    renderCharts() {
+      if (!this.data) return;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#cbd5e1' : '#475569';
+      const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+      const defaultOpts = {
+        responsive: true,
+        plugins: { legend: { labels: { color: textColor } } },
+        scales: {
+          x: { ticks: { color: textColor }, grid: { color: gridColor } },
+          y: { ticks: { color: textColor }, grid: { color: gridColor } },
+        }
+      };
+
+      // Words per scene
+      const wordsCtx = document.getElementById('wordsChart')?.getContext('2d');
+      if (wordsCtx) {
+        new Chart(wordsCtx, {
+          type: 'bar',
+          data: {
+            labels: this.data.scenes.map(s => s.title || `#${s.index + 1}`),
+            datasets: [{ label: 'Слов', data: this.data.scenes.map(s => s.words),
+              backgroundColor: 'rgba(99, 102, 241, 0.6)', borderRadius: 4 }]
+          },
+          options: defaultOpts,
+        });
+      }
+
+      // Character appearances
+      const charCtx = document.getElementById('charChart')?.getContext('2d');
+      if (charCtx && this.data.characters.length) {
+        new Chart(charCtx, {
+          type: 'doughnut',
+          data: {
+            labels: this.data.characters.map(c => c.name),
+            datasets: [{
+              data: this.data.characters.map(c => c.appearances),
+              backgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'],
+            }]
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } },
+        });
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

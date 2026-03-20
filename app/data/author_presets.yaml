@@ -1,0 +1,104 @@
+presets:
+  - key: pushkin
+    name: Александр Пушкин
+    language: ru
+    era: "XIX век"
+    description: "Лёгкий ироничный слог, точные детали, живые диалоги, элегантная простота"
+    style_prompt: >
+      Пиши в стиле Александра Пушкина: лёгкий, ироничный слог, точные и яркие детали,
+      живые диалоги, элегантная простота изложения. Используй ритмичную прозу,
+      избегай тяжеловесных конструкций. Допускай мягкую авторскую иронию.
+    sample: >
+      Дуня села в кибитку подле гусара, слуга вскочил на облучок,
+      ямщик свистнул, и лошади поскакали.
+
+  - key: tolstoy
+    name: Лев Толстой
+    language: ru
+    era: "XIX век"
+    description: "Глубокий психологизм, длинные периоды, поток сознания, масштабные описания"
+    style_prompt: >
+      Пиши в стиле Льва Толстого: глубокий психологизм, длинные многослойные предложения,
+      детальный анализ внутреннего мира персонажей, масштабные описания природы и общества.
+      Используй поток сознания, философские отступления, точные наблюдения за человеческим поведением.
+    sample: >
+      Он чувствовал, что жизнь его, казавшаяся ему прежде столь ясной и определённой,
+      теперь вдруг осложнилась чем-то таким, чего он не мог ни понять, ни объяснить себе.
+
+  - key: tolkien
+    name: Дж. Р. Р. Толкиен
+    language: en
+    era: "XX век"
+    description: "Эпический размах, архаичная лексика, мифопоэтика, детальное миростроительство"
+    style_prompt: >
+      Write in the style of J.R.R. Tolkien: epic narrative scope, slightly archaic and
+      formal diction, rich mythological undertones, detailed world-building, grand descriptions
+      of landscapes and battles. Use elevated prose for heroic moments and warm, homely
+      language for peaceful scenes.
+    sample: >
+      The world was young, the mountains green, no stain yet on the Moon was seen,
+      and the words unwritten, and the tales untold, when the kings of men were yet uncrowned.
+
+  - key: chekhov
+    name: Антон Чехов
+    language: ru
+    era: "XIX–XX век"
+    description: "Лаконичность, подтекст, атмосферные детали, недосказанность"
+    style_prompt: >
+      Пиши в стиле Антона Чехова: лаконичная, точная проза, глубокий подтекст,
+      атмосферные детали вместо прямых описаний эмоций. Недосказанность важнее
+      объяснений. Диалоги звучат как живая речь, но каждая реплика несёт скрытый смысл.
+    sample: >
+      Шёл мелкий дождь. На станции было пусто и тихо. Она стояла у окна
+      и смотрела на серое поле, и ей казалось, что она одна на всём свете.
+
+  - key: king
+    name: Стивен Кинг
+    language: en
+    era: "XX–XXI век"
+    description: "Разговорный стиль, саспенс, внутренний монолог, бытовые детали"
+    style_prompt: >
+      Write in the style of Stephen King: conversational, accessible prose with strong
+      internal monologue, building suspense through everyday details turned sinister.
+      Use colloquial language, pop culture references, and a rhythm that alternates
+      between slow-burn tension and sudden shocks.
+    sample: >
+      The thing under the bed was real. He'd always known it was, the way you know
+      some things — the way you know the stove is hot without having to touch it.
+
+  - key: dostoevsky
+    name: Фёдор Достоевский
+    language: ru
+    era: "XIX век"
+    description: "Надрыв, полифония голосов, экзистенциальные кризисы, лихорадочный ритм"
+    style_prompt: >
+      Пиши в стиле Фёдора Достоевского: надрывная, лихорадочная проза,
+      полифония голосов, экзистенциальные кризисы персонажей, резкие переходы
+      от исповедального монолога к сценическому диалогу. Используй длинные,
+      захлёбывающиеся фразы, повторы, курсив для выделения мучительных мыслей.
+    sample: >
+      Нет, нет! Это вздор, это невозможно! И однако же — однако же ведь
+      он это сделал, сделал же наконец! И всё ещё не верил, и боялся верить,
+      и дрожал, и не мог понять, как это случилось.
+
+  - key: marquez
+    name: Габриэль Гарсиа Маркес
+    language: es
+    era: "XX век"
+    description: "Магический реализм, плетение времён, гиперболы, поэтичность повседневного"
+    style_prompt: >
+      Write in the style of Gabriel García Márquez: magical realism where the extraordinary
+      is treated as mundane, sweeping multi-generational narratives, hyperbolic imagery,
+      long flowing sentences that weave past and present, poetic treatment of everyday life.
+      Blend the mythical with the historical.
+    sample: >
+      Many years later, as he faced the firing squad, Colonel Aureliano Buendía
+      was to remember that distant afternoon when his father took him to discover ice.
+
+  - key: custom
+    name: Свой стиль
+    language: any
+    era: ""
+    description: ""
+    style_prompt: ""
+    sample: ""

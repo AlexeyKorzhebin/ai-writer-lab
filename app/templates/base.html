@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru" x-data="{ sidebarOpen: true }" :class="{ 'dark': ThemeManager.isDark }">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AI Writer Lab{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: {
+        accent: { DEFAULT: '#6366f1', hover: '#4f46e5', light: '#eef2ff' }
+      }}}
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/app.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="h-screen flex overflow-hidden" style="background:var(--bg-primary);color:var(--text-primary)">
+
+  <!-- Sidebar -->
+  <aside class="sidebar flex flex-col h-full transition-all duration-300 flex-shrink-0"
+         :class="sidebarOpen ? 'w-60' : 'w-0 -ml-60 md:w-16 md:ml-0'"
+         style="background:var(--bg-sidebar);color:var(--text-sidebar)">
+    <!-- Logo -->
+    <div class="flex items-center gap-2 px-4 h-14 border-b border-white/10 flex-shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center flex-shrink-0">
+        <i data-lucide="pen-tool" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="font-bold text-white text-sm whitespace-nowrap" :class="{ 'hidden': !sidebarOpen }">AI Writer Lab</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+      <a href="/" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm {% block nav_home %}{% endblock %}">
+        <i data-lucide="home" class="w-4 h-4 flex-shrink-0"></i>
+        <span :class="{ 'hidden': !sidebarOpen }">Главная</span>
+      </a>
+      <a href="/settings" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm {% block nav_settings %}{% endblock %}">
+        <i data-lucide="settings" class="w-4 h-4 flex-shrink-0"></i>
+        <span :class="{ 'hidden': !sidebarOpen }">Настройки</span>
+      </a>
+
+      {% block sidebar_project %}{% endblock %}
+    </nav>
+
+    <!-- Sidebar footer -->
+    <div class="px-3 py-3 border-t border-white/10 flex-shrink-0">
+      <span class="text-xs opacity-50" :class="{ 'hidden': !sidebarOpen }">v0.4.0</span>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Top Bar -->
+    <header class="topbar flex items-center justify-between px-4 h-14 flex-shrink-0 z-10">
+      <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+          <i data-lucide="panel-left" class="w-5 h-5" style="color:var(--text-secondary)"></i>
+        </button>
+        <!-- Breadcrumbs -->
+        <nav class="flex items-center text-sm" style="color:var(--text-muted)">
+          {% block breadcrumbs %}
+          <span>AI Writer Lab</span>
+          {% endblock %}
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2">
+        {% block topbar_actions %}{% endblock %}
+
+        <!-- Language toggle -->
+        <button type="button" onclick="LangManager.toggle()"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-xs font-bold" title="Язык"
+                style="color:var(--text-secondary)" id="lang-toggle-btn">
+          <span id="lang-code">RU</span>
+        </button>
+
+        <!-- Theme toggle -->
+        <button onclick="ThemeManager.toggle(); lucide.createIcons();"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="Тема">
+          <i data-lucide="sun" class="w-5 h-5 dark:hidden" style="color:var(--text-secondary)"></i>
+          <i data-lucide="moon" class="w-5 h-5 hidden dark:block" style="color:var(--text-secondary)"></i>
+        </button>
+
+        <!-- Settings -->
+        <a href="/settings" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="Настройки">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5" style="color:var(--text-secondary)"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-auto" style="background:var(--bg-secondary)">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

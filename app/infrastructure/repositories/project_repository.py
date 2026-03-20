@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.models import Project
 from app.domain.entities import ProjectEntity
-from app.infrastructure.mappers import project_to_entity, apply_project_entity_to_orm
+from app.infrastructure.mappers import project_to_entity
 
 
 class ProjectRepository:

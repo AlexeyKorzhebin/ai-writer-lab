@@ -7,6 +7,22 @@ from reportlab.lib.units import inch
 import tempfile
 import os
 
+def _find_unicode_font():
+    """Cross-platform search for a Unicode font supporting Cyrillic."""
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+        "/System/Library/Fonts/Helvetica.ttc",  # macOS
+        "/Library/Fonts/Arial Unicode.ttf",  # macOS
+        os.path.expanduser("~/Library/Fonts/DejaVuSans.ttf"),  # macOS user
+        "C:\\Windows\\Fonts\\arial.ttf",  # Windows
+        "C:\\Windows\\Fonts\\DejaVuSans.ttf",  # Windows
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+
 class PDFExporter:
     def export_project(self, project, chapters):
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
@@ -14,9 +30,8 @@ class PDFExporter:
         doc = SimpleDocTemplate(tmp_file.name)
         elements = []
 
-        # Register a Unicode font (DejaVuSans supports Cyrillic)
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-        if os.path.exists(font_path):
+        font_path = _find_unicode_font()
+        if font_path:
             pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
             style = ParagraphStyle(
                 name="NormalUnicode",

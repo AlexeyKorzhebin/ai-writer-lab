@@ -1,0 +1,9 @@
+<!-- Context token budget indicator -->
+<div class="px-3 py-1.5 border-b flex items-center gap-2" style="border-color:var(--border-color)">
+  <span class="text-xs" style="color:var(--text-muted)">Контекст</span>
+  <div class="flex-1 h-1.5 rounded-full" style="background:var(--bg-tertiary)">
+    <div class="h-full rounded-full transition-all"
+         :style="`width: ${budgetPct}%; background: ${budgetPct < 50 ? 'var(--success)' : budgetPct < 80 ? 'var(--warning)' : 'var(--error)'}`"></div>
+  </div>
+  <span class="text-xs tabular-nums" style="color:var(--text-muted)" x-text="budgetPct + '%'"></span>
+</div>

@@ -1,81 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Writer Lab</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50">
+{% extends "base.html" %}
 
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-2">AI Writer Lab</h1>
-    <p class="text-gray-500 mb-8">Multi-agent writing studio for long-form content</p>
+{% block title %}AI Writer Lab — Проекты{% endblock %}
+{% block nav_home %}active{% endblock %}
 
-    <div class="bg-white shadow rounded-lg p-6 mb-8">
-        <h2 class="text-lg font-semibold mb-3">Create New Project</h2>
+{% block breadcrumbs %}
+<span style="color:var(--text-primary)" class="font-medium">Главная</span>
+{% endblock %}
 
-        <div class="space-y-3">
-            <input id="project-title" class="w-full border rounded p-2" placeholder="Project title" />
-            <textarea id="project-description" class="w-full border rounded p-2" rows="2" placeholder="Project description"></textarea>
-            <div class="grid grid-cols-2 gap-3">
-                <input id="project-author" class="w-full border rounded p-2" placeholder="Author name" />
-                <textarea id="project-style" class="w-full border rounded p-2" rows="1" placeholder="Author style / tone"></textarea>
+{% block topbar_actions %}
+<button onclick="document.getElementById('importInput').click()"
+        class="btn-secondary px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5">
+  <i data-lucide="download" class="w-4 h-4"></i> Импорт
+</button>
+<input type="file" id="importInput" accept=".zip" class="hidden">
+{% endblock %}
+
+{% block content %}
+<div class="p-6" x-data="homeApp()">
+
+  <!-- Quick Start -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
+      <i data-lucide="zap" class="w-5 h-5" style="color:var(--accent)"></i> Быстрый старт
+    </h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <template x-for="tpl in quickTemplates" :key="tpl.genre">
+        <button @click="createFromTemplate(tpl)"
+                class="card rounded-xl p-4 text-center hover:border-indigo-400 transition-all group cursor-pointer">
+          <div class="text-2xl mb-2" x-text="tpl.icon"></div>
+          <div class="text-sm font-medium" x-text="tpl.name"></div>
+        </button>
+      </template>
+    </div>
+  </section>
+
+  <!-- Create new -->
+  <section class="mb-8">
+    <div class="card rounded-xl p-5 flex flex-col md:flex-row gap-3 items-end">
+      <div class="flex-1">
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Название проекта</label>
+        <input type="text" x-model="newTitle" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Мой новый роман..." @keydown.enter="createProject()">
+      </div>
+      <div class="flex-1">
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Описание (необязательно)</label>
+        <input type="text" x-model="newDesc" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="О чём эта история...">
+      </div>
+      <button @click="createProject()" class="btn-primary px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap flex items-center gap-2">
+        <i data-lucide="plus" class="w-4 h-4"></i> Создать
+      </button>
+    </div>
+  </section>
+
+  <!-- Projects list -->
+  <section>
+    <h2 class="text-lg font-semibold mb-3 flex items-center gap-2">
+      <i data-lucide="book-open" class="w-5 h-5" style="color:var(--accent)"></i>
+      Проекты
+      <span class="text-sm font-normal" style="color:var(--text-muted)">({{ projects | length }})</span>
+    </h2>
+
+    {% if projects %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for p in projects %}
+      <div class="card rounded-xl p-5 flex flex-col group">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-base truncate">{{ p.title }}</h3>
+            {% if p.description %}
+            <p class="text-sm mt-1 line-clamp-2" style="color:var(--text-secondary)">{{ p.description }}</p>
+            {% endif %}
+          </div>
+          <div class="relative ml-2" x-data="{ open: false }">
+            <button @click="open = !open" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+              <i data-lucide="more-vertical" class="w-4 h-4" style="color:var(--text-muted)"></i>
+            </button>
+            <div x-show="open" @click.away="open = false"
+                 class="absolute right-0 mt-1 w-40 rounded-lg shadow-lg py-1 z-10"
+                 style="background:var(--bg-primary);border:1px solid var(--border-color)">
+              <a href="/projects/{{ p.id }}/export/epub" class="block px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Экспорт EPUB</a>
+              <a href="/projects/{{ p.id }}/export/pdf" class="block px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Экспорт PDF</a>
+              <a href="/projects/{{ p.id }}/export/docx" class="block px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Экспорт DOCX</a>
+              <hr style="border-color:var(--border-color)" class="my-1">
+              <button @click="open=false; deleteProject({{ p.id }}, '{{ p.title }}')"
+                      class="block w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                Удалить
+              </button>
             </div>
-            <div class="flex gap-3">
-                <button onclick="createProject(false)" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    Create Project
-                </button>
-                <button onclick="createProject(true)" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                    Create Story (Wizard)
-                </button>
-            </div>
+          </div>
         </div>
+
+        <div class="flex items-center gap-3 text-xs mb-4" style="color:var(--text-muted)">
+          {% if p.author_style %}
+          <span class="flex items-center gap-1"><i data-lucide="feather" class="w-3 h-3"></i> {{ p.author_style[:30] }}</span>
+          {% endif %}
+        </div>
+
+        <div class="mt-auto flex gap-2">
+          <a href="/projects/{{ p.id }}/story/wizard"
+             class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 flex-1 justify-center">
+            <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Визард
+          </a>
+          <a href="/projects/{{ p.id }}/story/workspace"
+             class="btn-primary px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 flex-1 justify-center">
+            <i data-lucide="layout" class="w-3.5 h-3.5"></i> Workspace
+          </a>
+        </div>
+      </div>
+      {% endfor %}
     </div>
-
-    <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold mb-3">Projects</h2>
-
-        <ul class="space-y-2">
-            {% for project in projects %}
-                <li class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                    <a class="text-blue-600 font-medium" href="projects/{{ project.id }}">
-                        {{ project.title }}
-                    </a>
-                    <a href="projects/{{ project.id }}/story/workspace"
-                       class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">
-                        Story Workspace
-                    </a>
-                </li>
-            {% else %}
-                <li class="text-gray-500">No projects yet.</li>
-            {% endfor %}
-        </ul>
+    {% else %}
+    <div class="text-center py-16" style="color:var(--text-muted)">
+      <i data-lucide="book-open" class="w-12 h-12 mx-auto mb-3 opacity-40"></i>
+      <p class="text-lg font-medium mb-1">Пока нет проектов</p>
+      <p class="text-sm">Создайте новый проект или используйте быстрый старт</p>
     </div>
-
-    <script>
-        async function createProject(withWizard) {
-            const title = document.getElementById('project-title').value;
-            const description = document.getElementById('project-description').value;
-            const author_name = document.getElementById('project-author').value;
-            const author_style = document.getElementById('project-style').value;
-
-            const response = await fetch('projects', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description, author_name, author_style })
-            });
-
-            const data = await response.json();
-
-            if (withWizard) {
-                window.location.href = 'projects/' + data.id + '/story/wizard';
-            } else {
-                window.location.href = 'projects/' + data.id;
-            }
-        }
-    </script>
+    {% endif %}
+  </section>
 </div>
 
-</body>
-</html>
+<script>
+function homeApp() {
+  return {
+    newTitle: '',
+    newDesc: '',
+    quickTemplates: [
+      { name: 'Детектив', genre: 'mystery', icon: '🔍' },
+      { name: 'Фэнтези', genre: 'fantasy', icon: '🐉' },
+      { name: 'Sci-Fi', genre: 'sci_fi', icon: '🚀' },
+      { name: 'Роман', genre: 'romance', icon: '💕' },
+      { name: 'Триллер', genre: 'thriller', icon: '🔪' },
+      { name: 'Историческ.', genre: 'historical', icon: '🏛️' },
+    ],
+
+    async createProject() {
+      if (!this.newTitle.trim()) {
+        Toast.warning('Введите название проекта');
+        return;
+      }
+      const p = Toast.progress('Создание проекта...');
+      try {
+        const res = await api('/projects', {
+          method: 'POST',
+          body: { title: this.newTitle, description: this.newDesc }
+        });
+        p.done('Проект создан');
+        window.location.href = `/projects/${res.id}/story/wizard`;
+      } catch (e) { p.fail(e.message); }
+    },
+
+    async createFromTemplate(tpl) {
+      const p = Toast.progress('Создание проекта...');
+      try {
+        const res = await api('/projects', {
+          method: 'POST',
+          body: { title: `Новый ${tpl.name.toLowerCase()}`, description: `Проект в жанре ${tpl.name.toLowerCase()}` }
+        });
+        p.done('Проект создан');
+        window.location.href = `/projects/${res.id}/story/wizard`;
+      } catch (e) { p.fail(e.message); }
+    },
+
+    async deleteProject(id, title) {
+      const ok = await confirmDialog(
+        'Удалить проект?',
+        `Проект "${title}" и все его данные будут удалены безвозвратно.`,
+        { confirmText: 'Удалить', danger: true }
+      );
+      if (!ok) return;
+      const p = Toast.progress('Удаление...');
+      try {
+        await api(`/projects/${id}`, { method: 'DELETE' });
+        p.done('Проект удалён');
+        window.location.reload();
+      } catch (e) { p.fail(e.message); }
+    }
+  };
+}
+</script>
+{% endblock %}

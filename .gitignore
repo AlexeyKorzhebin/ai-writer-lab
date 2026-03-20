@@ -5,3 +5,6 @@ __pycache__/
 .venv/
 *.egg-info/
 test.db
+writer.db
+writer.db.*
+uploads/

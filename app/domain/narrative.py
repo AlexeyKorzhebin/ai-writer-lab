@@ -59,6 +59,15 @@ class WorldSpec:
     time_period: str = ""
     power_structures: str = ""
     atmosphere: str = ""
+    geography_overview: str = ""
+    cultural_notes: str = ""
+    technology_level: str = ""
+    languages: str = ""
+    calendar: str = ""
+    currency: str = ""
+    religions: str = ""
+    history_summary: str = ""
+    races: str = ""
 
 
 @dataclass
@@ -86,6 +95,8 @@ class CharacterSpec:
     secret: str = ""
     relationships: list[Relationship] = field(default_factory=list)
     arc: CharacterArc = field(default_factory=CharacterArc)
+    appearance: str = ""
+    speech_style: str = ""
 
 
 @dataclass
@@ -104,6 +115,13 @@ class StructuralSpec:
 
 
 @dataclass
+class TimeContext:
+    time_of_day: str = ""
+    season: str = ""
+    weather: str = ""
+
+
+@dataclass
 class SceneSpec:
     id: Optional[int] = None
     order: int = 0
@@ -113,6 +131,35 @@ class SceneSpec:
     emotional_state: str = ""
     content: Optional[str] = None
     summary: Optional[str] = None
+    location: str = ""
+    time_context: Optional[TimeContext] = None
+
+
+@dataclass
+class LocationState:
+    after_scene: int = 0
+    description_override: str = ""
+    change_reason: str = ""
+
+
+@dataclass
+class LocationSpec:
+    id: Optional[int] = None
+    name: str = ""
+    location_type: str = "building"
+    parent_id: Optional[int] = None
+    description: str = ""
+    visual_details: str = ""
+    atmosphere: str = ""
+    significance: str = ""
+    climate: str = ""
+    inhabitants: str = ""
+    notable_features: str = ""
+    connected_to: list[str] = field(default_factory=list)
+    travel_notes: str = ""
+    states: list[LocationState] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    first_appearance: Optional[int] = None
 
 
 @dataclass

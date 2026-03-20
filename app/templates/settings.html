@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки — AI Writer Lab{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/" class="hover:underline">Главная</a>
+<span class="mx-2">/</span>
+<span style="color:var(--text-primary)">Настройки</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto p-6" x-data="settingsApp()">
+
+  <h1 class="text-2xl font-bold mb-6">Настройки</h1>
+
+  <!-- LLM Provider -->
+  <section class="card rounded-xl p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <i data-lucide="cpu" class="w-5 h-5"></i> LLM-провайдер
+    </h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Провайдер</label>
+        <select x-model="form.provider" @change="onProviderChange()"
+                class="input-field w-full rounded-lg px-3 py-2 text-sm">
+          {% for p in providers %}
+          <option value="{{ p.key }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Base URL</label>
+        <input type="text" x-model="form.base_url" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="https://api.openai.com/v1">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">API Key</label>
+        <input type="password" x-model="form.api_key" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="sk-...">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Модель</label>
+        <select x-model="form.model" class="input-field w-full rounded-lg px-3 py-2 text-sm">
+          <template x-for="m in availableModels" :key="m">
+            <option :value="m" x-text="m"></option>
+          </template>
+          <option value="">— другая —</option>
+        </select>
+        <input x-show="!availableModels.includes(form.model)" type="text" x-model="form.model"
+               class="input-field w-full rounded-lg px-3 py-2 text-sm mt-2" placeholder="model-name">
+      </div>
+
+      <button @click="testConnection()" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+        <i data-lucide="zap" class="w-4 h-4"></i> Проверить подключение
+      </button>
+      <p x-show="testResult" x-text="testResult" class="text-sm mt-1"
+         :class="testSuccess ? 'text-green-600' : 'text-red-600'"></p>
+    </div>
+  </section>
+
+  <!-- Model Routing -->
+  <section class="card rounded-xl p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <i data-lucide="git-branch" class="w-5 h-5"></i> Маршрутизация моделей
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Черновик (Draft)</label>
+        <input type="text" x-model="form.draft_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Использовать основную модель">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Доработка (Refinement)</label>
+        <input type="text" x-model="form.refinement_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Использовать основную модель">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Ревью (Review)</label>
+        <input type="text" x-model="form.review_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Использовать основную модель">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Иллюстрации</label>
+        <input type="text" x-model="form.illustration_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
+               placeholder="Использовать основную модель">
+      </div>
+    </div>
+  </section>
+
+  <!-- Generation params -->
+  <section class="card rounded-xl p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <i data-lucide="sliders-horizontal" class="w-5 h-5"></i> Параметры генерации
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Temperature</label>
+        <input type="number" step="0.1" min="0" max="2" x-model="form.temperature"
+               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="0.7">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Max Tokens</label>
+        <input type="number" step="100" min="100" x-model="form.max_tokens"
+               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="4096">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Max итераций</label>
+        <input type="number" min="1" max="10" x-model="form.max_iterations"
+               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="3">
+      </div>
+    </div>
+  </section>
+
+  <!-- Save -->
+  <div class="flex justify-end">
+    <button @click="save()" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
+      <i data-lucide="save" class="w-4 h-4"></i> Сохранить настройки
+    </button>
+  </div>
+</div>
+
+<script>
+function settingsApp() {
+  const providers = {{ providers | tojson }};
+  const saved = {{ settings | tojson }};
+
+  return {
+    form: {
+      provider: saved.provider || 'openai',
+      base_url: saved.base_url || '',
+      api_key: saved.api_key || '',
+      model: saved.model || '',
+      draft_model: saved.draft_model || '',
+      refinement_model: saved.refinement_model || '',
+      review_model: saved.review_model || '',
+      illustration_model: saved.illustration_model || '',
+      temperature: saved.temperature || '0.7',
+      max_tokens: saved.max_tokens || '4096',
+      max_iterations: saved.max_iterations || '3',
+    },
+    availableModels: [],
+    testResult: '',
+    testSuccess: false,
+
+    init() {
+      this.onProviderChange();
+    },
+
+    onProviderChange() {
+      const p = providers.find(x => x.key === this.form.provider);
+      if (p) {
+        this.availableModels = p.models || [];
+        if (!this.form.base_url || providers.some(x => x.base_url === this.form.base_url)) {
+          this.form.base_url = p.base_url;
+        }
+        if (this.availableModels.length && !this.availableModels.includes(this.form.model)) {
+          this.form.model = this.availableModels[0];
+        }
+      }
+    },
+
+    async testConnection() {
+      this.testResult = '';
+      const p = Toast.progress('Проверка подключения...');
+      try {
+        const res = await api('/api/settings/test-connection', { method: 'POST', body: this.form });
+        this.testSuccess = res.success;
+        this.testResult = res.success ? res.message : res.error;
+        p.done(res.success ? 'Подключение успешно!' : null);
+        if (!res.success) p.fail(res.error);
+      } catch (e) {
+        this.testResult = e.message;
+        this.testSuccess = false;
+        p.fail(e.message);
+      }
+    },
+
+    async save() {
+      const p = Toast.progress('Сохранение...');
+      try {
+        await api('/api/settings', { method: 'PUT', body: this.form });
+        p.done('Настройки сохранены');
+      } catch (e) {
+        p.fail('Ошибка: ' + e.message);
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

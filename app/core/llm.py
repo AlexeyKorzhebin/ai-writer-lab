@@ -1,8 +1,12 @@
-from typing import Optional
+from typing import Optional, AsyncIterator
+import json
+import logging
 
 import httpx
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIAdapter:
@@ -22,13 +26,14 @@ class OpenAIAdapter:
         if not self.base_url:
             raise ValueError("OPENAI_BASE_URL is not set")
 
-    async def generate(self, prompt: str, *, temperature: Optional[float] = None) -> str:
-        url = f"{self.base_url}/chat/completions"
-
+    def _headers(self) -> dict:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
 
+    async def generate(self, prompt: str, *, temperature: Optional[float] = None) -> str:
+        url = f"{self.base_url}/chat/completions"
         payload: dict = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
@@ -37,7 +42,7 @@ class OpenAIAdapter:
             payload["temperature"] = temperature
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(url, headers=headers, json=payload)
+            response = await client.post(url, headers=self._headers(), json=payload)
             response.raise_for_status()
             data = response.json()
 
@@ -45,3 +50,53 @@ class OpenAIAdapter:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
             raise RuntimeError(f"Unexpected LLM response format: {data}")
+
+    async def chat(self, messages: list[dict], *, temperature: Optional[float] = None,
+                   model: Optional[str] = None) -> str:
+        url = f"{self.base_url}/chat/completions"
+        payload: dict = {
+            "model": model or self.model,
+            "messages": messages,
+        }
+        if temperature is not None:
+            payload["temperature"] = temperature
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(url, headers=self._headers(), json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError):
+            raise RuntimeError(f"Unexpected LLM response format: {data}")
+
+    async def stream_chat(self, messages: list[dict], *, temperature: Optional[float] = None,
+                          model: Optional[str] = None) -> AsyncIterator[str]:
+        """Stream chat completions, yielding content chunks."""
+        url = f"{self.base_url}/chat/completions"
+        payload: dict = {
+            "model": model or self.model,
+            "messages": messages,
+            "stream": True,
+        }
+        if temperature is not None:
+            payload["temperature"] = temperature
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", url, headers=self._headers(), json=payload) as response:
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, IndexError, KeyError):
+                        continue

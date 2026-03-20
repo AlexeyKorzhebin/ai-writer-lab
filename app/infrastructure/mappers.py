@@ -31,17 +31,3 @@ def project_to_entity(orm: Project, *, with_chapters: bool = True) -> ProjectEnt
     )
 
 
-def apply_chapter_entity_to_orm(entity: ChapterEntity, orm: Chapter) -> None:
-    orm.title = entity.title
-    orm.content = entity.content
-    orm.summary = entity.summary
-
-
-def apply_project_entity_to_orm(entity: ProjectEntity, orm: Project) -> None:
-    orm.title = entity.title
-    orm.description = entity.description
-    orm.model_name = entity.model_name
-    orm.temperature = entity.temperature
-    orm.max_tokens = entity.max_tokens
-    orm.author_name = entity.author.name
-    orm.author_style = entity.author.style
