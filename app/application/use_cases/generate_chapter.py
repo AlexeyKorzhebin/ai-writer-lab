@@ -1,40 +1,39 @@
 from app.core.writer_pipeline import WriterPipeline
+from app.core.memory import MemoryService
 
 
 class GenerateChapterUseCase:
-    def __init__(self, chapter_repository, llm):
+    def __init__(self, chapter_repository, llm, db_session=None):
         self.chapter_repository = chapter_repository
         self.llm = llm
+        self.db_session = db_session
 
     async def execute(self, chapter_id: int):
-        result = await self.chapter_repository.get_with_project(chapter_id)
+        chapter = await self.chapter_repository.get_with_project(chapter_id)
 
-        if not result:
+        if not chapter:
             return {"error": "Chapter not found"}
 
-        chapter_entity, orm_chapter = result
-
         if not self.llm:
-            orm_chapter.content = "LLM not configured"
-            await self.chapter_repository.save(orm_chapter)
+            chapter.content = "LLM not configured"
+            await self.chapter_repository.save(chapter)
             return {"status": "ok"}
 
-        pipeline = WriterPipeline(self.llm)
+        memory = MemoryService(self.db_session) if self.db_session else None
+        pipeline = WriterPipeline(self.llm, memory=memory)
 
-        # Temporary: pipeline still operates on ORM objects
         content, summary = await pipeline.generate_chapter(
-            orm_chapter.project,
-            orm_chapter,
+            chapter.project,
+            chapter,
         )
 
-        # Update domain entity
-        chapter_entity.content = content
-        chapter_entity.summary = summary
+        chapter.content = content
+        chapter.summary = summary
 
-        # Update ORM for persistence
-        orm_chapter.content = content
-        orm_chapter.summary = summary
+        await self.chapter_repository.save(chapter)
+        await self.chapter_repository.save_version(chapter)
 
-        await self.chapter_repository.save(orm_chapter)
+        if memory:
+            await memory.index_chapter(chapter)
 
         return {"status": "ok"}

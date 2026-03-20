@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create Story — {{ project.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .step { display: none; }
+        .step.active { display: block; }
+        .step-indicator.completed { background-color: #059669; color: white; }
+        .step-indicator.current { background-color: #4F46E5; color: white; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <a href="../{{ project.id }}" class="text-blue-600">&larr; Back to project</a>
+    <h1 class="text-3xl font-bold mt-4 mb-2">Create Story</h1>
+    <p class="text-gray-500 mb-6">{{ project.title }}</p>
+
+    <!-- Step Indicators -->
+    <div class="flex items-center gap-2 mb-8">
+        <div id="ind-1" class="step-indicator current w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-indigo-600">1</div>
+        <div class="flex-1 h-0.5 bg-gray-300"></div>
+        <div id="ind-2" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">2</div>
+        <div class="flex-1 h-0.5 bg-gray-300"></div>
+        <div id="ind-3" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">3</div>
+        <div class="flex-1 h-0.5 bg-gray-300"></div>
+        <div id="ind-4" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">4</div>
+        <div class="flex-1 h-0.5 bg-gray-300"></div>
+        <div id="ind-5" class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-300 text-gray-400">5</div>
+    </div>
+
+    <!-- Step 1: Idea -->
+    <div id="step-1" class="step active bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Step 1 — Idea</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Logline</label>
+                <textarea id="logline" class="w-full border rounded p-2" rows="2" placeholder="One-sentence summary of your story..."></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Genre</label>
+                    <select id="genre" class="w-full border rounded p-2">
+                        <option value="literary_fiction">Literary Fiction</option>
+                        <option value="fantasy">Fantasy</option>
+                        <option value="sci_fi">Sci-Fi</option>
+                        <option value="mystery">Mystery</option>
+                        <option value="thriller">Thriller</option>
+                        <option value="romance">Romance</option>
+                        <option value="horror">Horror</option>
+                        <option value="historical">Historical</option>
+                        <option value="short_story">Short Story</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Story Format</label>
+                    <select id="story_format" class="w-full border rounded p-2">
+                        {% for fmt in formats %}
+                        <option value="{{ fmt.key }}">{{ fmt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Tone</label>
+                <input id="tone" class="w-full border rounded p-2" placeholder="e.g. Dark, hopeful, ironic..." />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Themes (comma separated)</label>
+                <input id="themes" class="w-full border rounded p-2" placeholder="e.g. Redemption, Power, Identity" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Central Conflict</label>
+                <textarea id="central_conflict" class="w-full border rounded p-2" rows="2" placeholder="The main tension driving the story..."></textarea>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+            <button onclick="goToStep(2)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: World &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Step 2: World -->
+    <div id="step-2" class="step bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Step 2 — World</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">World Type</label>
+                <select id="world_type" class="w-full border rounded p-2">
+                    <option value="realistic">Realistic</option>
+                    <option value="fantasy">Fantasy</option>
+                    <option value="sci_fi">Sci-Fi</option>
+                    <option value="historical">Historical</option>
+                    <option value="dystopian">Dystopian</option>
+                    <option value="mythological">Mythological</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Rules of the World</label>
+                <textarea id="world_rules" class="w-full border rounded p-2" rows="3" placeholder="Physical laws, magic systems, social norms..."></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Time Period</label>
+                <input id="world_time" class="w-full border rounded p-2" placeholder="e.g. Medieval, Near future, 1920s" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Atmosphere</label>
+                <textarea id="world_atmosphere" class="w-full border rounded p-2" rows="2" placeholder="The overall feeling and mood..."></textarea>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-between">
+            <button onclick="goToStep(1)" class="text-gray-600 px-4 py-2">&larr; Back</button>
+            <button onclick="goToStep(3)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Characters &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Characters -->
+    <div id="step-3" class="step bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Step 3 — Characters</h2>
+        <div id="characters-list" class="space-y-4"></div>
+        <button onclick="addCharacter()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            + Add Character
+        </button>
+        <div class="mt-6 flex justify-between">
+            <button onclick="goToStep(2)" class="text-gray-600 px-4 py-2">&larr; Back</button>
+            <button onclick="goToStep(4)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Structure &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Step 4: Structure -->
+    <div id="step-4" class="step bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Step 4 — Structure</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Macro Structure</label>
+                <select id="macro_structure" class="w-full border rounded p-2">
+                    <option value="three_act">Three-Act</option>
+                    <option value="hero_journey">Hero's Journey</option>
+                    <option value="short_story">Short Story</option>
+                    <option value="five_act">Five-Act</option>
+                    <option value="episodic">Episodic</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Climax</label>
+                <textarea id="climax" class="w-full border rounded p-2" rows="2" placeholder="The peak moment of the story..."></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Resolution</label>
+                <textarea id="resolution" class="w-full border rounded p-2" rows="2" placeholder="How the story ends..."></textarea>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-between">
+            <button onclick="goToStep(3)" class="text-gray-600 px-4 py-2">&larr; Back</button>
+            <button onclick="goToStep(5)" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Next: Generate Scene Map &rarr;</button>
+        </div>
+    </div>
+
+    <!-- Step 5: Confirm & Create -->
+    <div id="step-5" class="step bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Step 5 — Review & Create</h2>
+        <div id="review-summary" class="bg-gray-50 rounded p-4 text-sm space-y-2 mb-6"></div>
+        <div id="create-status" class="text-sm text-gray-500 mb-4"></div>
+        <div class="flex justify-between">
+            <button onclick="goToStep(4)" class="text-gray-600 px-4 py-2">&larr; Back</button>
+            <button id="btn-create" onclick="createStory()" class="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700">
+                Create Story
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const projectId = {{ project.id }};
+    let currentStep = 1;
+    let characterCount = 0;
+
+    function goToStep(step) {
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        document.getElementById(`step-${step}`).classList.add('active');
+
+        for (let i = 1; i <= 5; i++) {
+            const ind = document.getElementById(`ind-${i}`);
+            ind.className = 'step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 ';
+            if (i < step) ind.className += 'completed border-green-600';
+            else if (i === step) ind.className += 'current border-indigo-600';
+            else ind.className += 'border-gray-300 text-gray-400';
+        }
+
+        currentStep = step;
+        if (step === 5) buildReviewSummary();
+    }
+
+    function addCharacter() {
+        characterCount++;
+        const n = characterCount;
+        const html = `
+        <div id="char-${n}" class="border rounded p-4 bg-gray-50">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-medium">Character ${n}</h4>
+                <button onclick="document.getElementById('char-${n}').remove()" class="text-red-500 text-sm">Remove</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <input class="char-name border rounded p-2" placeholder="Name" />
+                <select class="char-role border rounded p-2">
+                    <option value="protagonist">Protagonist</option>
+                    <option value="antagonist">Antagonist</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="sidekick">Sidekick</option>
+                    <option value="love_interest">Love Interest</option>
+                    <option value="supporting" selected>Supporting</option>
+                </select>
+                <input class="char-motivation border rounded p-2 col-span-2" placeholder="Motivation" />
+                <input class="char-fear border rounded p-2" placeholder="Fear" />
+                <input class="char-secret border rounded p-2" placeholder="Secret" />
+                <input class="char-arc-start border rounded p-2" placeholder="Arc: Starting state" />
+                <input class="char-arc-end border rounded p-2" placeholder="Arc: End state" />
+            </div>
+        </div>`;
+        document.getElementById('characters-list').insertAdjacentHTML('beforeend', html);
+    }
+
+    function collectCharacters() {
+        const chars = [];
+        document.querySelectorAll('[id^="char-"]').forEach(el => {
+            chars.push({
+                name: el.querySelector('.char-name').value,
+                role: el.querySelector('.char-role').value,
+                motivation: el.querySelector('.char-motivation').value,
+                fear: el.querySelector('.char-fear').value,
+                secret: el.querySelector('.char-secret').value,
+                arc_start: el.querySelector('.char-arc-start').value,
+                arc_end: el.querySelector('.char-arc-end').value,
+            });
+        });
+        return chars;
+    }
+
+    function collectData() {
+        return {
+            core_idea: {
+                logline: document.getElementById('logline').value,
+                genre: document.getElementById('genre').value,
+                tone: document.getElementById('tone').value,
+                themes: document.getElementById('themes').value.split(',').map(s => s.trim()).filter(Boolean),
+                central_conflict: document.getElementById('central_conflict').value,
+                story_format: document.getElementById('story_format').value,
+            },
+            world: {
+                world_type: document.getElementById('world_type').value,
+                rules: document.getElementById('world_rules').value,
+                time_period: document.getElementById('world_time').value,
+                atmosphere: document.getElementById('world_atmosphere').value,
+            },
+            characters: collectCharacters(),
+            structure: {
+                macro_structure: document.getElementById('macro_structure').value,
+                climax: document.getElementById('climax').value,
+                resolution: document.getElementById('resolution').value,
+            },
+        };
+    }
+
+    function buildReviewSummary() {
+        const d = collectData();
+        const box = document.getElementById('review-summary');
+        const chars = d.characters.map(c => `<li><strong>${c.name || '?'}</strong> (${c.role})</li>`).join('');
+        box.innerHTML = `
+            <p><strong>Logline:</strong> ${d.core_idea.logline || '—'}</p>
+            <p><strong>Genre:</strong> ${d.core_idea.genre} | <strong>Format:</strong> ${d.core_idea.story_format}</p>
+            <p><strong>Tone:</strong> ${d.core_idea.tone || '—'}</p>
+            <p><strong>Themes:</strong> ${d.core_idea.themes.join(', ') || '—'}</p>
+            <p><strong>Conflict:</strong> ${d.core_idea.central_conflict || '—'}</p>
+            <hr class="my-2"/>
+            <p><strong>World:</strong> ${d.world.world_type} — ${d.world.atmosphere || '—'}</p>
+            <p><strong>Time:</strong> ${d.world.time_period || '—'}</p>
+            <hr class="my-2"/>
+            <p><strong>Characters:</strong></p>
+            <ul class="list-disc pl-4">${chars || '<li>None yet</li>'}</ul>
+            <hr class="my-2"/>
+            <p><strong>Structure:</strong> ${d.structure.macro_structure}</p>
+            <p><strong>Climax:</strong> ${d.structure.climax || '—'}</p>
+            <p><strong>Resolution:</strong> ${d.structure.resolution || '—'}</p>
+        `;
+    }
+
+    async function createStory() {
+        const status = document.getElementById('create-status');
+        const btn = document.getElementById('btn-create');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        status.textContent = 'Saving NarrativeSpec...';
+
+        const data = collectData();
+
+        const resp = await fetch(`../projects/${projectId}/narrative-spec`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        const result = await resp.json();
+
+        if (result.error) {
+            status.textContent = 'Error: ' + result.error;
+            btn.disabled = false;
+            btn.textContent = 'Create Story';
+            return;
+        }
+
+        status.textContent = 'Generating scene map...';
+
+        const outlineResp = await fetch(`../projects/${projectId}/narrative-spec/generate-outline`, {
+            method: 'POST',
+        });
+        const outlineResult = await outlineResp.json();
+
+        if (outlineResult.error) {
+            status.textContent = 'Story created. Outline generation failed: ' + outlineResult.error;
+            setTimeout(() => window.location.href = `../projects/${projectId}/story/workspace`, 1500);
+            return;
+        }
+
+        status.textContent = `Story created with ${outlineResult.scene_count} scenes!`;
+        setTimeout(() => window.location.href = `../projects/${projectId}/story/workspace`, 1000);
+    }
+
+    addCharacter();
+</script>
+
+</body>
+</html>

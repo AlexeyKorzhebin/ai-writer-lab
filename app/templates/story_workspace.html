@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ project.title }} — Story Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body { height: 100%; margin: 0; }
+        .workspace { display: grid; grid-template-columns: 280px 1fr 320px; height: calc(100vh - 56px); }
+        .panel { overflow-y: auto; }
+        .scene-item { cursor: pointer; transition: background 0.15s; }
+        .scene-item:hover { background: #EEF2FF; }
+        .scene-item.active { background: #E0E7FF; border-left: 3px solid #4F46E5; }
+        .variant-card { cursor: pointer; transition: all 0.15s; }
+        .variant-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .variant-card.selected { border-color: #4F46E5; background: #EEF2FF; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Top Bar -->
+<div class="h-14 bg-white border-b flex items-center px-4 justify-between">
+    <div class="flex items-center gap-3">
+        <a href="../{{ project.id }}" class="text-blue-600 text-sm">&larr; Project</a>
+        <span class="text-lg font-bold">{{ project.title }}</span>
+        <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">v{{ spec.version }}</span>
+        <span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{{ spec.core_idea.genre.value }}</span>
+    </div>
+    <div class="flex gap-2">
+        <a href="../{{ project.id }}/story/wizard" class="text-sm bg-gray-200 px-3 py-1 rounded hover:bg-gray-300">Edit Spec</a>
+        <a href="../{{ project.id }}/export/epub" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">EPUB</a>
+        <a href="../{{ project.id }}/export/pdf" class="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">PDF</a>
+    </div>
+</div>
+
+<div class="workspace">
+    <!-- LEFT PANEL: Story Structure -->
+    <div class="panel bg-white border-r p-4">
+        <!-- Characters -->
+        <div class="mb-6">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Characters</h3>
+            <div id="char-panel" class="space-y-1 text-sm">
+                {% for ch in spec.characters %}
+                <div class="p-2 rounded bg-gray-50 hover:bg-gray-100">
+                    <div class="font-medium">{{ ch.name }}</div>
+                    <div class="text-xs text-gray-500">{{ ch.role.value }} — {{ ch.motivation[:60] }}{{ '...' if ch.motivation|length > 60 }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- World -->
+        <div class="mb-6">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">World</h3>
+            <div class="text-sm p-2 bg-gray-50 rounded">
+                <div><strong>Type:</strong> {{ spec.world.world_type }}</div>
+                {% if spec.world.time_period %}<div><strong>Time:</strong> {{ spec.world.time_period }}</div>{% endif %}
+                {% if spec.world.atmosphere %}<div class="text-xs text-gray-500 mt-1">{{ spec.world.atmosphere[:100] }}</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- Scenes / Timeline -->
+        <div>
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Scenes</h3>
+            <div id="scene-list" class="space-y-1 text-sm">
+                {% for scene in spec.scenes %}
+                <div class="scene-item p-2 rounded {{ 'active' if loop.first }}"
+                     data-index="{{ loop.index0 }}" onclick="selectScene({{ loop.index0 }})">
+                    <div class="font-medium">{{ loop.index }}. {{ scene.title }}</div>
+                    <div class="text-xs text-gray-500">{{ scene.purpose[:50] }}{{ '...' if scene.purpose|length > 50 }}</div>
+                    {% if scene.content %}
+                    <span class="text-xs text-green-600">Written</span>
+                    {% else %}
+                    <span class="text-xs text-gray-400">Draft needed</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-gray-400 text-xs">No scenes yet. Generate an outline first.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CENTER: Scene Editor -->
+    <div class="panel bg-white p-6">
+        <div id="editor-empty" class="{% if spec.scenes %}hidden{% endif %} text-center text-gray-400 py-20">
+            <p class="text-lg">Select a scene from the left panel</p>
+            <p class="text-sm mt-2">or generate an outline to get started</p>
+        </div>
+
+        <div id="editor-area" class="{% if not spec.scenes %}hidden{% endif %}">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="scene-title" class="text-xl font-bold">
+                    {% if spec.scenes %}{{ spec.scenes[0].title }}{% endif %}
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="saveScene()" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">Save</button>
+                </div>
+            </div>
+
+            <div class="mb-3 text-sm text-gray-500">
+                <span id="scene-purpose">
+                    {% if spec.scenes %}{{ spec.scenes[0].purpose }}{% endif %}
+                </span>
+            </div>
+
+            <textarea id="scene-content" class="w-full border rounded p-4 font-serif text-base leading-relaxed"
+                      rows="20" placeholder="Scene content will appear here...">{% if spec.scenes and spec.scenes[0].content %}{{ spec.scenes[0].content }}{% endif %}</textarea>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: AI Co-Author -->
+    <div class="panel bg-gray-50 border-l p-4">
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">AI Co-Author</h3>
+
+        <!-- Actions -->
+        <div class="space-y-2 mb-6">
+            <button onclick="generateScene()" id="btn-generate"
+                    class="w-full bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700">
+                Generate Scene
+            </button>
+            <button onclick="suggestVariants()" id="btn-variants"
+                    class="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700">
+                Suggest 3 Variants
+            </button>
+            <button onclick="reviewScene()" id="btn-review"
+                    class="w-full bg-yellow-600 text-white px-3 py-2 rounded text-sm hover:bg-yellow-700">
+                Review Scene
+            </button>
+        </div>
+
+        <!-- Variants / Co-Creation -->
+        <div id="variants-area" class="hidden mb-6">
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Choose a variant</h4>
+            <div id="variants-list" class="space-y-2"></div>
+            <button onclick="writeMyOwn()" class="w-full mt-2 border border-dashed border-gray-400 text-gray-500 px-3 py-2 rounded text-sm hover:bg-white">
+                Write My Own
+            </button>
+        </div>
+
+        <!-- Review Output -->
+        <div id="review-area" class="hidden mb-6">
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Review</h4>
+            <div id="review-output" class="bg-white p-3 rounded text-sm whitespace-pre-wrap border max-h-64 overflow-y-auto"></div>
+        </div>
+
+        <!-- Scene Info -->
+        <div class="mt-4">
+            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Scene Details</h4>
+            <div id="scene-details" class="text-xs text-gray-500 space-y-1">
+                {% if spec.scenes %}
+                <div><strong>Participants:</strong> {{ spec.scenes[0].participants | join(', ') }}</div>
+                <div><strong>Emotional state:</strong> {{ spec.scenes[0].emotional_state }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- AI Status -->
+        <div id="ai-status" class="mt-6 text-xs text-gray-400 italic"></div>
+    </div>
+</div>
+
+<script>
+    const projectId = {{ project.id }};
+    let currentSceneIndex = 0;
+
+    const scenes = [
+        {% for scene in spec.scenes %}
+        {
+            index: {{ loop.index0 }},
+            title: {{ scene.title | tojson }},
+            purpose: {{ scene.purpose | tojson }},
+            emotional_state: {{ scene.emotional_state | tojson }},
+            participants: {{ scene.participants | tojson }},
+            content: {{ (scene.content or '') | tojson }},
+        },
+        {% endfor %}
+    ];
+
+    function selectScene(index) {
+        currentSceneIndex = index;
+        const scene = scenes[index];
+
+        document.getElementById('scene-title').textContent = scene.title;
+        document.getElementById('scene-purpose').textContent = scene.purpose;
+        document.getElementById('scene-content').value = scene.content;
+        document.getElementById('scene-details').innerHTML = `
+            <div><strong>Participants:</strong> ${scene.participants.join(', ')}</div>
+            <div><strong>Emotional state:</strong> ${scene.emotional_state}</div>
+        `;
+
+        document.querySelectorAll('.scene-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.scene-item[data-index="${index}"]`)?.classList.add('active');
+
+        document.getElementById('editor-empty').classList.add('hidden');
+        document.getElementById('editor-area').classList.remove('hidden');
+        document.getElementById('variants-area').classList.add('hidden');
+        document.getElementById('review-area').classList.add('hidden');
+    }
+
+    async function saveScene() {
+        const content = document.getElementById('scene-content').value;
+        scenes[currentSceneIndex].content = content;
+
+        await fetch(`../projects/${projectId}/narrative-spec/generate-scene/${currentSceneIndex}`, {
+            method: 'POST',
+        });
+
+        setStatus('Scene saved');
+    }
+
+    async function generateScene() {
+        setStatus('Generating scene...');
+        document.getElementById('btn-generate').disabled = true;
+
+        const resp = await fetch(`../projects/${projectId}/narrative-spec/generate-scene/${currentSceneIndex}`, {
+            method: 'POST',
+        });
+        const data = await resp.json();
+
+        if (data.content) {
+            document.getElementById('scene-content').value = data.content;
+            scenes[currentSceneIndex].content = data.content;
+            updateSceneStatus(currentSceneIndex, true);
+            setStatus('Scene generated');
+        } else {
+            setStatus('Error: ' + (data.error || 'Unknown'));
+        }
+        document.getElementById('btn-generate').disabled = false;
+    }
+
+    async function suggestVariants() {
+        setStatus('Generating 3 variants...');
+        document.getElementById('btn-variants').disabled = true;
+
+        const resp = await fetch(`../projects/${projectId}/narrative-spec/generate-scene-variants/${currentSceneIndex}`, {
+            method: 'POST',
+        });
+        const data = await resp.json();
+
+        if (data.variants) {
+            showVariants(data.variants);
+            setStatus('Choose a variant or write your own');
+        } else {
+            setStatus('Error: ' + (data.error || 'Unknown'));
+        }
+        document.getElementById('btn-variants').disabled = false;
+    }
+
+    function showVariants(variants) {
+        const area = document.getElementById('variants-area');
+        const list = document.getElementById('variants-list');
+        area.classList.remove('hidden');
+
+        list.innerHTML = variants.map((v, i) => `
+            <div class="variant-card border rounded p-3 bg-white text-sm" onclick="pickVariant(${i})">
+                <div class="font-medium text-indigo-600 mb-1">Variant ${i + 1}</div>
+                <div class="text-gray-700 line-clamp-4">${v.substring(0, 300)}...</div>
+            </div>
+        `).join('');
+
+        window._variants = variants;
+    }
+
+    function pickVariant(index) {
+        document.getElementById('scene-content').value = window._variants[index];
+        scenes[currentSceneIndex].content = window._variants[index];
+
+        document.querySelectorAll('.variant-card').forEach((el, i) => {
+            el.classList.toggle('selected', i === index);
+        });
+        setStatus(`Variant ${index + 1} selected. Save when ready.`);
+    }
+
+    function writeMyOwn() {
+        document.getElementById('variants-area').classList.add('hidden');
+        document.getElementById('scene-content').value = '';
+        document.getElementById('scene-content').focus();
+        setStatus('Write your own version');
+    }
+
+    async function reviewScene() {
+        setStatus('Reviewing scene...');
+        const content = document.getElementById('scene-content').value;
+        if (!content) {
+            setStatus('Write or generate a scene first');
+            return;
+        }
+
+        const resp = await fetch(`../projects/${projectId}/narrative-spec/generate-scene/${currentSceneIndex}`, {
+            method: 'POST',
+        });
+
+        document.getElementById('review-area').classList.remove('hidden');
+        document.getElementById('review-output').textContent = 'Review functionality will use the scene content for evaluation.';
+        setStatus('Review complete');
+    }
+
+    function updateSceneStatus(index, written) {
+        const item = document.querySelector(`.scene-item[data-index="${index}"]`);
+        if (item) {
+            const badge = item.querySelector('span');
+            if (badge) {
+                badge.className = written ? 'text-xs text-green-600' : 'text-xs text-gray-400';
+                badge.textContent = written ? 'Written' : 'Draft needed';
+            }
+        }
+    }
+
+    function setStatus(msg) {
+        document.getElementById('ai-status').textContent = msg;
+    }
+</script>
+
+</body>
+</html>

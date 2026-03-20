@@ -9,7 +9,11 @@
 <body class="bg-gray-50">
 
 <div class="max-w-4xl mx-auto px-4 py-8">
-    <a href="../" class="text-blue-600">← Back to projects</a>
+    <div class="flex items-center gap-4">
+        <a href="../" class="text-blue-600">&larr; Back to projects</a>
+        <a href="../projects/{{ project.id }}/story/wizard" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Story Wizard</a>
+        <a href="../projects/{{ project.id }}/story/workspace" class="text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">Story Workspace</a>
+    </div>
 
     <h1 class="text-2xl font-bold mt-4 mb-2">{{ project.title }}</h1>
     <p class="text-gray-600 mb-2">{{ project.description }}</p>

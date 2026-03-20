@@ -8,103 +8,132 @@
 </head>
 <body class="bg-gray-50">
 
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <a href="../../{{ project.id }}" class="text-blue-600">← Back to project</a>
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <a href="../../{{ project.id }}" class="text-blue-600">&larr; Back to project</a>
 
     <h1 class="text-2xl font-bold mt-4 mb-4">{{ chapter.title }}</h1>
 
-    <div class="bg-white shadow rounded-lg p-6">
-        <textarea id="chapter-content" class="w-full border rounded p-3" rows="20">{{ chapter.content or '' }}</textarea>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow rounded-lg p-6">
+                <textarea id="chapter-content" class="w-full border rounded p-3 font-mono text-sm" rows="24">{{ chapter.content or '' }}</textarea>
 
-        <div class="mt-4 space-x-2">
-            <button onclick="saveChapter()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                Save
-            </button>
-            <button onclick="regenerateChapter()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-                Regenerate
-            </button>
-            <button onclick="reviewChapter()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                Review
-            </button>
-            <button onclick="applyImprovements()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
-                Apply Improvements
-            </button>
-            <button onclick="produceHQ()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                Produce High Quality
-            </button>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button onclick="saveChapter()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Save
+                    </button>
+                    <button onclick="regenerateChapter()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                        Regenerate
+                    </button>
+                    <button onclick="reviewChapter()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                        Review
+                    </button>
+                    <button onclick="applyImprovements()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                        Apply Improvements
+                    </button>
+                    <button onclick="produceHQ()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        Produce High Quality
+                    </button>
+                </div>
+
+                <div id="review-output" class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap"></div>
+                <div id="hq-output" class="mt-4 text-sm text-gray-700"></div>
+            </div>
         </div>
 
-        <div id="review-output" class="mt-6 bg-gray-100 p-4 rounded text-sm whitespace-pre-wrap"></div>
-        <div id="hq-output" class="mt-4 text-sm text-gray-700"></div>
+        <div>
+            <div class="bg-white shadow rounded-lg p-4">
+                <h3 class="font-semibold mb-3">Version History</h3>
+                <div id="versions-list" class="space-y-2 text-sm">
+                    <p class="text-gray-400">Loading...</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
+    const projectId = {{ project.id }};
+    const chapterId = {{ chapter.id }};
+    const baseUrl = `../../${projectId}`;
+
+    async function loadVersions() {
+        const resp = await fetch(`${baseUrl}/chapters/${chapterId}/versions`);
+        const versions = await resp.json();
+        const box = document.getElementById('versions-list');
+
+        if (!versions.length) {
+            box.innerHTML = '<p class="text-gray-400">No versions yet.</p>';
+            return;
+        }
+
+        box.innerHTML = versions.map(v => `
+            <div class="border rounded p-2">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">v${v.version_number}</span>
+                    <button onclick="rollback(${v.version_number})"
+                            class="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">
+                        Restore
+                    </button>
+                </div>
+                <p class="text-gray-500 text-xs mt-1">${v.content_preview || 'Empty'}...</p>
+            </div>
+        `).join('');
+    }
+
+    async function rollback(versionNumber) {
+        if (!confirm(`Restore to version ${versionNumber}?`)) return;
+        await fetch(`${baseUrl}/chapters/${chapterId}/rollback/${versionNumber}`, { method: 'POST' });
+        window.location.reload();
+    }
+
     async function saveChapter() {
         const content = document.getElementById('chapter-content').value;
-
-        await fetch('../../{{ project.id }}/chapters/{{ chapter.id }}/update', {
+        await fetch(`${baseUrl}/chapters/${chapterId}/update`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content })
         });
-
         alert('Saved');
     }
 
     async function regenerateChapter() {
-        await fetch('../../{{ project.id }}/generate-chapter/{{ chapter.id }}', {
-            method: 'POST'
-        });
-
+        await fetch(`${baseUrl}/generate-chapter/${chapterId}`, { method: 'POST' });
         window.location.reload();
     }
 
     async function reviewChapter() {
         const reviewBox = document.getElementById('review-output');
         reviewBox.innerText = 'Reviewing...';
-
-        const response = await fetch('../../{{ project.id }}/review/{{ chapter.id }}', {
-            method: 'POST'
-        });
-
+        const response = await fetch(`${baseUrl}/review/${chapterId}`, { method: 'POST' });
         const data = await response.json();
-        reviewBox.innerText = data.review || JSON.stringify(data);
+        reviewBox.innerText = JSON.stringify(data.review || data, null, 2);
     }
 
     async function applyImprovements() {
         const reviewText = document.getElementById('review-output').innerText;
-        if (!reviewText) {
+        if (!reviewText || reviewText === 'Reviewing...') {
             alert('Run review first');
             return;
         }
-
-        await fetch('../../{{ project.id }}/edit/{{ chapter.id }}', {
+        await fetch(`${baseUrl}/edit/${chapterId}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ review: reviewText })
         });
-
         window.location.reload();
     }
 
     async function produceHQ() {
         const hqBox = document.getElementById('hq-output');
         hqBox.innerText = 'Producing high quality version...';
-
-        const response = await fetch('../../{{ project.id }}/produce-hq/{{ chapter.id }}', {
-            method: 'POST'
-        });
-
+        const response = await fetch(`${baseUrl}/produce-hq/${chapterId}`, { method: 'POST' });
         const data = await response.json();
         hqBox.innerText = `Iterations: ${data.iterations}, Final Score: ${data.final_score}`;
-
         window.location.reload();
     }
+
+    loadVersions();
 </script>
 
 </body>

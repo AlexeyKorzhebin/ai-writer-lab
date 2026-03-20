@@ -9,30 +9,42 @@
 <body class="bg-gray-50">
 
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-2xl md:text-3xl font-bold mb-6">AI Writer Lab ✦</h1>
+    <h1 class="text-3xl font-bold mb-2">AI Writer Lab</h1>
+    <p class="text-gray-500 mb-8">Multi-agent writing studio for long-form content</p>
 
     <div class="bg-white shadow rounded-lg p-6 mb-8">
         <h2 class="text-lg font-semibold mb-3">Create New Project</h2>
 
         <div class="space-y-3">
             <input id="project-title" class="w-full border rounded p-2" placeholder="Project title" />
-            <textarea id="project-description" class="w-full border rounded p-2" rows="3" placeholder="Project description"></textarea>
-            <input id="project-author" class="w-full border rounded p-2" placeholder="Author name" />
-            <textarea id="project-style" class="w-full border rounded p-2" rows="3" placeholder="Author style / tone of voice"></textarea>
-            <button onclick="createProject()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-                Create Project
-            </button>
+            <textarea id="project-description" class="w-full border rounded p-2" rows="2" placeholder="Project description"></textarea>
+            <div class="grid grid-cols-2 gap-3">
+                <input id="project-author" class="w-full border rounded p-2" placeholder="Author name" />
+                <textarea id="project-style" class="w-full border rounded p-2" rows="1" placeholder="Author style / tone"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="createProject(false)" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Create Project
+                </button>
+                <button onclick="createProject(true)" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                    Create Story (Wizard)
+                </button>
+            </div>
         </div>
     </div>
 
     <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold mb-3">Existing Projects</h2>
+        <h2 class="text-lg font-semibold mb-3">Projects</h2>
 
         <ul class="space-y-2">
             {% for project in projects %}
-                <li>
-                    <a class="text-blue-600" href="projects/{{ project.id }}">
+                <li class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <a class="text-blue-600 font-medium" href="projects/{{ project.id }}">
                         {{ project.title }}
+                    </a>
+                    <a href="projects/{{ project.id }}/story/workspace"
+                       class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">
+                        Story Workspace
                     </a>
                 </li>
             {% else %}
@@ -42,7 +54,7 @@
     </div>
 
     <script>
-        async function createProject() {
+        async function createProject(withWizard) {
             const title = document.getElementById('project-title').value;
             const description = document.getElementById('project-description').value;
             const author_name = document.getElementById('project-author').value;
@@ -50,14 +62,17 @@
 
             const response = await fetch('projects', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, description, author_name, author_style })
             });
 
             const data = await response.json();
-            window.location.href = 'projects/' + data.id;
+
+            if (withWizard) {
+                window.location.href = 'projects/' + data.id + '/story/wizard';
+            } else {
+                window.location.href = 'projects/' + data.id;
+            }
         }
     </script>
 </div>

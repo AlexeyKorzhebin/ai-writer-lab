@@ -1,9 +1,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 
-DATABASE_URL = "sqlite+aiosqlite:///./writer.db"
+from app.core.config import get_settings
 
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+settings = get_settings()
+
+engine = create_async_engine(settings.database_url, echo=settings.debug, future=True)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -12,8 +14,8 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
-# Ensure all models are registered in metadata
 from app.core import models  # noqa: F401
+
 
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:

@@ -1,7 +1,8 @@
-import os
 from typing import Optional
 
 import httpx
+
+from app.core.config import get_settings
 
 
 class OpenAIAdapter:
@@ -10,49 +11,30 @@ class OpenAIAdapter:
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: float = 60.0,
+        timeout: Optional[float] = None,
     ):
-        # Use OpenAI-compatible environment variables
-        self.base_url = (
-            base_url
-            or os.getenv("OPENAI_BASE_URL")
-            or os.getenv("LLM_BASE_URL")
-            or ""
-        ).rstrip("/")
-
-        self.api_key = (
-            api_key
-            or os.getenv("OPENAI_API_KEY")
-            or os.getenv("LLM_API_KEY")
-            or ""
-        )
-
-        self.model = (
-            model
-            or os.getenv("OPENAI_MODEL")
-            or os.getenv("LLM_MODEL")
-            or "gpt-3.5-turbo"
-        )
-        self.timeout = timeout
+        settings = get_settings()
+        self.base_url = (base_url or settings.openai_base_url).rstrip("/")
+        self.api_key = api_key or settings.openai_api_key
+        self.model = model or settings.openai_model
+        self.timeout = timeout or settings.llm_timeout
 
         if not self.base_url:
-            raise ValueError("LLM_BASE_URL is not set")
+            raise ValueError("OPENAI_BASE_URL is not set")
 
-    async def generate(self, prompt: str) -> str:
+    async def generate(self, prompt: str, *, temperature: Optional[float] = None) -> str:
         url = f"{self.base_url}/chat/completions"
 
-        headers = {
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        payload = {
+        payload: dict = {
             "model": self.model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
         }
+        if temperature is not None:
+            payload["temperature"] = temperature
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(url, headers=headers, json=payload)
