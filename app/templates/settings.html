@@ -14,184 +14,635 @@
 
   <h1 class="text-2xl font-bold mb-6">Настройки</h1>
 
-  <!-- LLM Provider -->
+  <!-- ══ ПРОФИЛИ ══ -->
   <section class="card rounded-xl p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-      <i data-lucide="cpu" class="w-5 h-5"></i> LLM-провайдер
-    </h2>
-
-    <div class="space-y-4">
+    <div class="flex items-center justify-between mb-5">
       <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Провайдер</label>
-        <select x-model="form.provider" @change="onProviderChange()"
-                class="input-field w-full rounded-lg px-3 py-2 text-sm">
-          {% for p in providers %}
-          <option value="{{ p.key }}">{{ p.name }}</option>
-          {% endfor %}
-        </select>
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <i data-lucide="zap" class="w-5 h-5"></i> Подключения к LLM
+        </h2>
+        <p class="text-xs mt-0.5 opacity-55">Каждый профиль — эндпоинт + модель + ключ. Примените нужный.</p>
       </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Base URL</label>
-        <input type="text" x-model="form.base_url" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="https://api.openai.com/v1">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">API Key</label>
-        <input type="password" x-model="form.api_key" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="sk-...">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Модель</label>
-        <select x-model="form.model" class="input-field w-full rounded-lg px-3 py-2 text-sm">
-          <template x-for="m in availableModels" :key="m">
-            <option :value="m" x-text="m"></option>
-          </template>
-          <option value="">— другая —</option>
-        </select>
-        <input x-show="!availableModels.includes(form.model)" type="text" x-model="form.model"
-               class="input-field w-full rounded-lg px-3 py-2 text-sm mt-2" placeholder="model-name">
-      </div>
-
-      <button @click="testConnection()" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-        <i data-lucide="zap" class="w-4 h-4"></i> Проверить подключение
+      <button type="button" @click="openProfileModal(null)"
+              class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 flex-shrink-0">
+        <i data-lucide="plus" class="w-4 h-4"></i> Создать профиль
       </button>
-      <p x-show="testResult" x-text="testResult" class="text-sm mt-1"
-         :class="testSuccess ? 'text-green-600' : 'text-red-600'"></p>
+    </div>
+
+    <div x-show="!profiles.length"
+         class="text-center py-10 rounded-xl border-2 border-dashed" style="border-color:var(--border)">
+      <i data-lucide="plug" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
+      <p class="text-sm font-medium mb-1">Нет сохранённых профилей</p>
+      <p class="text-xs opacity-55 mb-4">Создайте профиль с вашим API-ключом и моделью</p>
+      <button type="button" @click="openProfileModal(null)" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+        Создать первый профиль
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <template x-for="pr in profiles" :key="pr.id">
+        <div class="rounded-xl border p-4 flex flex-col gap-3 transition-all"
+             :class="pr.id === activeProfileId ? 'ring-2 ring-green-500/60' : ''"
+             style="border-color:var(--border)">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-sm truncate" x-text="pr.name"></span>
+                <span x-show="pr.id === activeProfileId"
+                      class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                      style="background:#16a34a22;color:#16a34a">● Активен</span>
+              </div>
+              <div class="text-xs mt-0.5 opacity-55 truncate font-mono"
+                   x-text="(pr.provider_key || '') + (pr.provider_key && pr.model ? ' · ' : '') + (pr.model || '')"></div>
+            </div>
+            <div class="flex gap-0.5 flex-shrink-0 -mr-1 -mt-1">
+              <button type="button" @click="openProfileModal(pr)"
+                      class="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                      style="background:var(--bg-elevated)" title="Редактировать">
+                <i data-lucide="pencil" class="w-3.5 h-3.5 opacity-70"></i>
+              </button>
+              <button type="button" @click="deleteProfile(pr.id)"
+                      class="p-1.5 rounded-lg transition-opacity hover:opacity-70 text-red-500"
+                      title="Удалить">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+          <template x-if="pr.id !== activeProfileId">
+            <button type="button" @click="applyProfile(pr.id)"
+                    class="w-full text-sm py-1.5 rounded-lg font-medium border transition-opacity hover:opacity-70"
+                    style="border-color:var(--border);background:var(--bg-elevated)">
+              Применить
+            </button>
+          </template>
+          <template x-if="pr.id === activeProfileId">
+            <div class="flex items-center gap-1.5 text-xs font-medium" style="color:#16a34a">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Используется сейчас
+            </div>
+          </template>
+        </div>
+      </template>
     </div>
   </section>
 
-  <!-- Model Routing -->
-  <section class="card rounded-xl p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-      <i data-lucide="git-branch" class="w-5 h-5"></i> Маршрутизация моделей
-    </h2>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Черновик (Draft)</label>
-        <input type="text" x-model="form.draft_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="Использовать основную модель">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Доработка (Refinement)</label>
-        <input type="text" x-model="form.refinement_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="Использовать основную модель">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Ревью (Review)</label>
-        <input type="text" x-model="form.review_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="Использовать основную модель">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Иллюстрации</label>
-        <input type="text" x-model="form.illustration_model" class="input-field w-full rounded-lg px-3 py-2 text-sm"
-               placeholder="Использовать основную модель">
-      </div>
-    </div>
-  </section>
-
-  <!-- Generation params -->
-  <section class="card rounded-xl p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-      <i data-lucide="sliders-horizontal" class="w-5 h-5"></i> Параметры генерации
-    </h2>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Temperature</label>
-        <input type="number" step="0.1" min="0" max="2" x-model="form.temperature"
-               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="0.7">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Max Tokens</label>
-        <input type="number" step="100" min="100" x-model="form.max_tokens"
-               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="4096">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1" style="color:var(--text-secondary)">Max итераций</label>
-        <input type="number" min="1" max="10" x-model="form.max_iterations"
-               class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="3">
-      </div>
-    </div>
-  </section>
-
-  <!-- Save -->
-  <div class="flex justify-end">
-    <button @click="save()" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2">
-      <i data-lucide="save" class="w-4 h-4"></i> Сохранить настройки
+  <!-- ══ ГЛОБАЛЬНЫЕ HTTP-ЗАГОЛОВКИ (disclosure) ══ -->
+  <section class="card rounded-xl mb-8">
+    <button type="button"
+            class="w-full flex items-center justify-between px-6 py-4 text-sm font-medium hover:opacity-80 transition-opacity"
+            @click="showGlobalHeaders = !showGlobalHeaders">
+      <span class="flex items-center gap-2 opacity-65">
+        <i data-lucide="code-2" class="w-4 h-4"></i> Глобальные HTTP-заголовки
+      </span>
+      <i data-lucide="chevron-down" class="w-4 h-4 opacity-40 transition-transform duration-200"
+         :class="showGlobalHeaders ? 'rotate-180' : ''"></i>
     </button>
+    <div x-show="showGlobalHeaders" x-cloak class="border-t px-6 pb-5 pt-5" style="border-color:var(--border)">
+      <p class="text-xs mb-3 opacity-65 leading-relaxed">
+        Применяются ко всем LLM-запросам (если не заданы в профиле). Пример:
+        <code class="px-1 rounded" style="background:var(--bg-elevated)">{ "MLP-API-KEY": "ключ" }</code>
+      </p>
+      <textarea x-model="globalHeaders" rows="3" spellcheck="false"
+                class="input-field w-full rounded-lg px-3 py-2 text-sm font-mono mb-3"
+                placeholder="{}"></textarea>
+      <div class="flex justify-end">
+        <button type="button" @click="saveGlobalHeaders()"
+                class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">Сохранить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ МОДАЛКА ПРОФИЛЯ ══ -->
+  <div x-show="profileModal.open" x-cloak
+       class="fixed inset-0 z-50 flex items-start justify-center pt-6 pb-6 px-4 overflow-y-auto"
+       style="background:rgba(0,0,0,.5)"
+       @keydown.escape.window="profileModal.open = false">
+    <div class="card rounded-2xl w-full max-w-2xl shadow-2xl my-auto"
+         @click.outside="profileModal.open = false">
+
+      <!-- Modal header -->
+      <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--border)">
+        <h3 class="text-base font-semibold"
+            x-text="profileModal.editId ? 'Редактировать профиль' : 'Создать профиль подключения'"></h3>
+        <button type="button" @click="profileModal.open = false" class="opacity-50 hover:opacity-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-6">
+
+        <!-- ── Провайдер ── -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold">Провайдер</label>
+            <button type="button" @click="peOpen(null)"
+                    class="text-xs flex items-center gap-1 opacity-65 hover:opacity-100 transition-opacity">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Добавить эндпоинт
+            </button>
+          </div>
+          <p class="text-xs opacity-60 mb-3 leading-relaxed">
+            Встроенные варианты (OpenAI, CAILA, Ollama и т.д.) из приложения не удаляются.
+            Свой эндпоинт можно удалить: на его карточке справа — иконки карандаша и корзины (или откройте редактирование и нажмите «Удалить эндпоинт» внизу).
+          </p>
+
+          <!-- Provider radio cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            <template x-for="(p, pIdx) in mergedProviders" :key="'pv-' + pIdx + '-' + (p.source || '') + '-' + (p.id || p.key || '')">
+              <label class="group relative cursor-pointer rounded-xl border p-3 pr-10 select-none transition-all"
+                     :class="profileModal.provider_key === p.key ? 'ring-2 ring-blue-500/50' : 'hover:opacity-80'"
+                     style="border-color:var(--border)">
+                <input type="radio" x-model="profileModal.provider_key" :value="p.key" class="sr-only"
+                       @change="onModalProviderChange()">
+                <div class="flex items-start gap-1.5">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-sm font-medium leading-snug truncate" x-text="p.name"></div>
+                    <div class="text-xs mt-0.5 opacity-50 truncate font-mono" x-text="p.base_url || '—'"></div>
+                  </div>
+                  <span x-show="p.source === 'builtin'"
+                        class="shrink-0 text-[10px] uppercase tracking-wide px-1 py-0.5 rounded opacity-45"
+                        style="background:var(--bg-elevated)">встроен.</span>
+                </div>
+                <!-- Edit/delete: только пользовательские эндпоинты, всегда видны -->
+                <div x-show="p.source === 'user'"
+                     class="absolute top-2 right-2 flex gap-0.5 z-[1]">
+                  <button type="button" class="p-1.5 rounded-md shadow-sm hover:opacity-90" style="background:var(--bg-elevated);border:1px solid var(--border)"
+                          @click.prevent.stop="peOpen(p)" title="Редактировать эндпоинт">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5 opacity-70"></i>
+                  </button>
+                  <button type="button" class="p-1.5 rounded-md shadow-sm text-red-600 hover:opacity-90" style="background:var(--bg-elevated);border:1px solid var(--border)"
+                          @click.prevent.stop="peDeleteProvider(p.id || p.key)" title="Удалить эндпоинт">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </label>
+            </template>
+          </div>
+
+          <!-- Inline provider editor -->
+          <div x-show="providerEditor !== null" class="rounded-xl border p-4 mb-4 space-y-3"
+               style="border-color:var(--border);background:var(--bg-elevated)">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-semibold"
+                 x-text="providerEditor && providerEditor.id ? 'Редактировать эндпоинт' : 'Новый эндпоинт'"></p>
+              <button type="button" @click="providerEditor = null" class="opacity-50 hover:opacity-100">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <template x-if="providerEditor !== null">
+              <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium mb-1 opacity-70">Название</label>
+                    <input type="text" x-model="providerEditor.name"
+                           class="input-field w-full rounded-lg px-3 py-2 text-sm" placeholder="Мой провайдер">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium mb-1 opacity-70">Slug (ключ)</label>
+                    <input type="text" x-model="providerEditor.key"
+                           class="input-field w-full rounded-lg px-3 py-2 text-sm font-mono" placeholder="my-api">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1 opacity-70">Base URL <span class="text-red-500">*</span></label>
+                  <input type="text" x-model="providerEditor.base_url"
+                         class="input-field w-full rounded-lg px-3 py-2 text-sm font-mono"
+                         placeholder="https://api.example.com/v1">
+                </div>
+                <div>
+                  <label class="block text-xs font-medium mb-1 opacity-70">
+                    API Key
+                    <span class="opacity-50 font-normal ml-1">— необязателен для локальных моделей</span>
+                  </label>
+                  <input type="password" x-model="providerEditor.api_key"
+                         class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                         :placeholder="providerEditor.id ? 'Оставьте пустым, чтобы не менять' : 'sk-… (необязательно)'">
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <button type="button" x-show="providerEditor && providerEditor.id"
+                          class="text-sm px-3 py-1.5 rounded-lg text-red-600 border border-red-200 hover:opacity-80 transition-opacity"
+                          @click="peDeleteProvider(providerEditor.id || providerEditor.key)">
+                    Удалить эндпоинт
+                  </button>
+                  <div class="flex gap-2 ml-auto">
+                    <button type="button" class="text-sm px-3 py-1.5 rounded-lg border"
+                            style="border-color:var(--border)" @click="providerEditor = null">Отмена</button>
+                    <button type="button" class="btn-primary text-sm px-4 py-1.5 rounded-lg font-medium"
+                            @click="peSave()">Сохранить эндпоинт</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Base URL (always visible, derived or overridden) -->
+          <div>
+            <label class="block text-xs font-medium mb-1 opacity-70">
+              Base URL <span class="text-red-500">*</span>
+              <span class="opacity-50 font-normal ml-1">— подставляется из провайдера, можно изменить</span>
+            </label>
+            <input type="text" x-model="profileModal.base_url"
+                   class="input-field w-full rounded-lg px-3 py-2 text-sm font-mono"
+                   placeholder="https://api.openai.com/v1">
+          </div>
+        </div>
+
+        <!-- ── API Key ── -->
+        <div>
+          <label class="block text-sm font-semibold mb-2">
+            API Key
+            <span class="text-xs font-normal opacity-50 ml-1">— необязателен для локальных моделей</span>
+          </label>
+          <input type="password" x-model="profileModal.api_key"
+                 class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                 placeholder="sk-… (необязательно)" autocomplete="new-password">
+          <p x-show="profileModal.editId" class="text-xs mt-1 opacity-55">
+            Оставьте пустым — текущий ключ сохранится.
+          </p>
+        </div>
+
+        <!-- ── Дополнительные заголовки ── -->
+        <div>
+          <button type="button"
+                  class="text-sm font-medium flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+                  @click="profileModal.showExtraHeaders = !profileModal.showExtraHeaders">
+            <i data-lucide="chevron-right" class="w-4 h-4 transition-transform duration-150"
+               :class="profileModal.showExtraHeaders ? 'rotate-90' : ''"></i>
+            Дополнительные HTTP-заголовки
+            <span class="text-xs opacity-60">(MLP-API-KEY и др.)</span>
+          </button>
+          <div x-show="profileModal.showExtraHeaders" class="mt-3 space-y-2">
+            <p class="text-xs opacity-55">JSON-объект: <code class="px-1 rounded" style="background:var(--bg-elevated)">{ "MLP-API-KEY": "ключ" }</code></p>
+            <textarea x-model="profileModal.extra_headers" rows="3" spellcheck="false"
+                      class="input-field w-full rounded-lg px-3 py-2 text-sm font-mono"
+                      placeholder="{}"></textarea>
+          </div>
+        </div>
+
+        <!-- ── Модель ── -->
+        <div>
+          <label class="block text-sm font-semibold mb-2">Модель</label>
+          <div class="flex gap-2 mb-2">
+            <input type="text" x-model="profileModal.model"
+                   class="input-field flex-1 rounded-lg px-3 py-2 text-sm font-mono"
+                   placeholder="gpt-4o-mini"
+                   @input="profileModal.nameManuallyEdited = false; updateModalName()">
+            <button type="button" @click="loadModalModels()"
+                    class="btn-primary px-3 py-2 rounded-lg text-sm whitespace-nowrap flex items-center gap-1.5"
+                    :disabled="profileModal.modelsLoading">
+              <i x-show="!profileModal.modelsLoading" data-lucide="list" class="w-3.5 h-3.5"></i>
+              <span x-show="!profileModal.modelsLoading">Загрузить список</span>
+              <span x-show="profileModal.modelsLoading">…</span>
+            </button>
+          </div>
+          <p x-show="profileModal.modelsError" class="text-xs text-red-600 mb-2" x-text="profileModal.modelsError"></p>
+
+          <div x-show="profileModal.availableModels.length" class="rounded-xl border overflow-hidden"
+               style="border-color:var(--border)">
+            <div class="px-3 py-2 border-b flex items-center gap-2" style="border-color:var(--border);background:var(--bg-elevated)">
+              <i data-lucide="search" class="w-3.5 h-3.5 opacity-40 flex-shrink-0"></i>
+              <input type="search" x-model="profileModal.modelSearch"
+                     class="bg-transparent outline-none text-sm flex-1 min-w-0"
+                     placeholder="Фильтр…" autocomplete="off">
+              <span class="text-xs opacity-40 flex-shrink-0"
+                    x-text="profileModalFilteredModels().length + ' / ' + profileModal.availableModels.length"></span>
+              <button type="button" class="opacity-40 hover:opacity-80"
+                      @click="profileModal.availableModels = []; profileModal.modelSearch = ''">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div class="overflow-y-auto" style="max-height:11rem">
+              <template x-for="m in profileModalFilteredModels()" :key="m">
+                <button type="button"
+                        class="w-full text-left text-sm px-3 py-1.5 font-mono transition-colors hover:opacity-80"
+                        :class="profileModal.model === m ? 'font-semibold' : ''"
+                        :style="profileModal.model === m ? 'background:var(--bg-elevated)' : ''"
+                        @click="profileModal.model = m; profileModal.nameManuallyEdited = false; updateModalName()">
+                  <span x-text="m"></span>
+                  <i x-show="profileModal.model === m" data-lucide="check" class="w-3 h-3 inline ml-1 opacity-50"></i>
+                </button>
+              </template>
+              <p x-show="profileModal.modelSearch.trim() && !profileModalFilteredModels().length"
+                 class="text-xs px-3 py-2 opacity-50">Ничего не найдено.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Проверить подключение ── -->
+        <div class="rounded-xl p-4" style="background:var(--bg-elevated)">
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" @click="testModalConnection()"
+                    class="btn-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4"></i> Проверить подключение
+            </button>
+            <p x-show="profileModal.testResult" x-text="profileModal.testResult"
+               class="text-sm font-medium flex-1"
+               :class="profileModal.testSuccess ? 'text-green-600' : 'text-red-600'"></p>
+          </div>
+          <p class="text-xs mt-2 opacity-50">Проверяет доступность эндпоинта через <code class="text-xs">GET /models</code>.</p>
+        </div>
+
+        <!-- ── Название профиля ── -->
+        <div>
+          <label class="block text-sm font-semibold mb-2">Название профиля</label>
+          <input type="text" x-model="profileModal.name"
+                 class="input-field w-full rounded-lg px-3 py-2 text-sm"
+                 placeholder="Например: CAILA / gpt-4o"
+                 @input="profileModal.nameManuallyEdited = true">
+          <p class="text-xs mt-1 opacity-50">Предлагается автоматически на основе провайдера и модели.</p>
+        </div>
+
+      </div>
+
+      <!-- Modal footer -->
+      <div class="px-6 py-4 border-t flex justify-end gap-3" style="border-color:var(--border)">
+        <button type="button" class="px-4 py-2 rounded-lg text-sm border hover:opacity-70 transition-opacity"
+                style="border-color:var(--border)" @click="profileModal.open = false">Отмена</button>
+        <button type="button" class="btn-primary px-5 py-2 rounded-lg text-sm font-medium"
+                @click="saveProfile()">Сохранить профиль</button>
+      </div>
+    </div>
   </div>
+
 </div>
 
 <script>
 function settingsApp() {
-  const providers = {{ providers | tojson }};
+  const initialProviders = {{ providers | tojson }};
   const saved = {{ settings | tojson }};
 
   return {
-    form: {
-      provider: saved.provider || 'openai',
-      base_url: saved.base_url || '',
-      api_key: saved.api_key || '',
-      model: saved.model || '',
-      draft_model: saved.draft_model || '',
-      refinement_model: saved.refinement_model || '',
-      review_model: saved.review_model || '',
-      illustration_model: saved.illustration_model || '',
-      temperature: saved.temperature || '0.7',
-      max_tokens: saved.max_tokens || '4096',
-      max_iterations: saved.max_iterations || '3',
-    },
-    availableModels: [],
-    testResult: '',
-    testSuccess: false,
+    mergedProviders: initialProviders,
+    profiles: saved.llm_profiles || [],
+    activeProfileId: saved.active_profile_id || '',
 
+    showGlobalHeaders: false,
+    globalHeaders: typeof saved.llm_extra_headers === 'string'
+      ? saved.llm_extra_headers
+      : (saved.llm_extra_headers ? JSON.stringify(saved.llm_extra_headers, null, 2) : '{}'),
+
+    /* inline provider editor (null = closed) */
+    providerEditor: null,
+
+    profileModal: {
+      open: false, editId: null,
+      name: '', nameManuallyEdited: false,
+      provider_key: '',
+      base_url: '',
+      api_key: '',
+      extra_headers: '{}', showExtraHeaders: false,
+      model: '',
+      availableModels: [], modelSearch: '', modelsLoading: false, modelsError: '',
+      testResult: '', testSuccess: false,
+    },
+
+    /* ── computed ── */
+    providerName(key) {
+      const p = this.mergedProviders.find(x => x.key === key);
+      return p ? p.name : (key || '—');
+    },
+
+    profileModalFilteredModels() {
+      const q = (this.profileModal.modelSearch || '').trim().toLowerCase();
+      return q
+        ? (this.profileModal.availableModels || []).filter(m => m.toLowerCase().includes(q))
+        : (this.profileModal.availableModels || []);
+    },
+
+    /* ── init ── */
     init() {
-      this.onProviderChange();
+      this._refreshProviders();
     },
 
-    onProviderChange() {
-      const p = providers.find(x => x.key === this.form.provider);
-      if (p) {
-        this.availableModels = p.models || [];
-        if (!this.form.base_url || providers.some(x => x.base_url === this.form.base_url)) {
-          this.form.base_url = p.base_url;
-        }
-        if (this.availableModels.length && !this.availableModels.includes(this.form.model)) {
-          this.form.model = this.availableModels[0];
-        }
-      }
-    },
-
-    async testConnection() {
-      this.testResult = '';
-      const p = Toast.progress('Проверка подключения...');
+    async _refreshProviders() {
       try {
-        const res = await api('/api/settings/test-connection', { method: 'POST', body: this.form });
-        this.testSuccess = res.success;
-        this.testResult = res.success ? res.message : res.error;
-        p.done(res.success ? 'Подключение успешно!' : null);
-        if (!res.success) p.fail(res.error);
+        this.mergedProviders = await api('/api/settings/providers');
+      } catch (e) { console.error(e); }
+    },
+
+    async _reloadProfiles() {
+      try {
+        const s = await api('/api/settings');
+        this.profiles = s.llm_profiles || [];
+        this.activeProfileId = s.active_profile_id || '';
+      } catch (e) { console.error(e); }
+    },
+
+    /* ── profile modal ── */
+    openProfileModal(pr) {
+      const m = this.profileModal;
+      m.modelsError = ''; m.testResult = ''; m.testSuccess = false;
+      m.availableModels = []; m.modelSearch = '';
+      this.providerEditor = null;
+
+      if (pr) {
+        m.editId = pr.id;
+        m.nameManuallyEdited = true;
+        m.name = pr.name;
+        m.provider_key = pr.provider_key || '';
+        m.base_url = pr.base_url || '';
+        m.api_key = pr.api_key || '';
+        m.extra_headers = pr.extra_headers || '{}';
+        m.showExtraHeaders = !!(m.extra_headers && m.extra_headers !== '{}');
+        m.model = pr.model || '';
+      } else {
+        m.editId = null;
+        m.nameManuallyEdited = false;
+        m.name = '';
+        const first = this.mergedProviders[0];
+        m.provider_key = first ? first.key : '';
+        m.base_url = first ? (first.base_url || '') : '';
+        m.api_key = '';
+        m.extra_headers = '{}';
+        m.showExtraHeaders = false;
+        m.model = '';
+        if (first && first.models && first.models.length) {
+          m.availableModels = [...first.models];
+          m.model = first.models[0];
+        }
+        this.updateModalName();
+      }
+      m.open = true;
+    },
+
+    onModalProviderChange() {
+      const p = this.mergedProviders.find(x => x.key === this.profileModal.provider_key);
+      if (!p) return;
+      this.profileModal.base_url = p.base_url || '';
+      if (p.source === 'user' && p.api_key && !_isMasked(p.api_key)) {
+        this.profileModal.api_key = p.api_key;
+      }
+      if (p.models && p.models.length) {
+        this.profileModal.availableModels = [...p.models];
+        if (!this.profileModal.model) this.profileModal.model = p.models[0];
+      } else {
+        this.profileModal.availableModels = [];
+      }
+      this.updateModalName();
+    },
+
+    updateModalName() {
+      if (this.profileModal.nameManuallyEdited) return;
+      const pn = this.providerName(this.profileModal.provider_key);
+      const m = (this.profileModal.model || '').trim();
+      this.profileModal.name = m ? `${pn} / ${m}` : pn;
+    },
+
+    async loadModalModels() {
+      const m = this.profileModal;
+      m.modelsError = ''; m.modelsLoading = true;
+      try {
+        const res = await api('/api/settings/fetch-models', {
+          method: 'POST',
+          body: { base_url: m.base_url, api_key: m.api_key, llm_extra_headers: m.extra_headers },
+        });
+        if (res.error) { m.modelsError = res.error; m.availableModels = []; return; }
+        m.availableModels = Array.isArray(res.models)
+          ? res.models.map(String).map(s => s.trim()).filter(Boolean)
+          : [];
+        if (m.availableModels.length && !m.availableModels.includes(m.model)) {
+          m.model = m.availableModels[0];
+          this.updateModalName();
+        }
       } catch (e) {
-        this.testResult = e.message;
-        this.testSuccess = false;
-        p.fail(e.message);
+        m.modelsError = e.message || String(e);
+      } finally {
+        m.modelsLoading = false;
       }
     },
 
-    async save() {
-      const p = Toast.progress('Сохранение...');
+    async testModalConnection() {
+      const m = this.profileModal;
+      m.testResult = '';
+      const p = Toast.progress('Проверка подключения…');
       try {
-        await api('/api/settings', { method: 'PUT', body: this.form });
-        p.done('Настройки сохранены');
+        const res = await api('/api/settings/test-connection', {
+          method: 'POST',
+          body: { base_url: m.base_url, api_key: m.api_key, model: m.model, llm_extra_headers: m.extra_headers },
+        });
+        m.testSuccess = res.success;
+        m.testResult = res.success ? res.message : res.error;
+        res.success ? p.done('Подключение успешно!') : p.fail(res.error);
       } catch (e) {
-        p.fail('Ошибка: ' + e.message);
+        m.testResult = e.message; m.testSuccess = false; p.fail(e.message);
       }
-    }
+    },
+
+    async saveProfile() {
+      const m = this.profileModal;
+      const p = Toast.progress('Сохранение профиля…');
+      try {
+        const body = {
+          name: m.name,
+          provider_key: m.provider_key,
+          base_url: m.base_url,
+          model: m.model,
+          extra_headers: m.extra_headers,
+        };
+        if (m.api_key && !_isMasked(m.api_key)) body.api_key = m.api_key;
+        else if (!m.editId) body.api_key = m.api_key; // required on create
+
+        if (m.editId) {
+          await api(`/api/settings/profiles/${m.editId}`, { method: 'PUT', body });
+        } else {
+          await api('/api/settings/profiles', { method: 'POST', body });
+        }
+        m.open = false;
+        await this._reloadProfiles();
+        p.done('Профиль сохранён');
+      } catch (e) { p.fail(_parseErr(e)); }
+    },
+
+    async deleteProfile(id) {
+      if (!confirm('Удалить профиль?')) return;
+      try {
+        await api(`/api/settings/profiles/${id}`, { method: 'DELETE' });
+        if (this.activeProfileId === id) this.activeProfileId = '';
+        await this._reloadProfiles();
+        Toast.success('Удалено');
+      } catch (e) { Toast.error(_parseErr(e)); }
+    },
+
+    async applyProfile(id) {
+      const p = Toast.progress('Применение профиля…');
+      try {
+        await api(`/api/settings/profiles/${id}/apply`, { method: 'POST', body: {} });
+        this.activeProfileId = id;
+        p.done('Профиль применён');
+      } catch (e) { p.fail(_parseErr(e)); }
+    },
+
+    /* ── inline provider editor ── */
+    peOpen(prov) {
+      if (prov) {
+        this.providerEditor = { id: prov.id || prov.key, name: prov.name, key: prov.key || '', base_url: prov.base_url || '', api_key: '' };
+      } else {
+        this.providerEditor = { id: null, name: '', key: '', base_url: '', api_key: '' };
+      }
+    },
+
+    async peSave() {
+      const pe = this.providerEditor;
+      if (!pe) return;
+      const p = Toast.progress('Сохранение…');
+      try {
+        if (pe.id) {
+          const body = { name: pe.name, key: pe.key, base_url: pe.base_url };
+          if (pe.api_key) body.api_key = pe.api_key;
+          await api(`/api/settings/user-providers/${pe.id}`, { method: 'PUT', body });
+        } else {
+          await api('/api/settings/user-providers', {
+            method: 'POST',
+            body: { name: pe.name, key: pe.key, base_url: pe.base_url, api_key: pe.api_key },
+          });
+        }
+        this.providerEditor = null;
+        await this._refreshProviders();
+        // если только что добавили — выбрать его и подставить base_url
+        if (!pe.id) {
+          const fresh = this.mergedProviders.find(x => x.source === 'user' && x.base_url === pe.base_url.trim().replace(/\/$/, ''));
+          if (fresh) {
+            this.profileModal.provider_key = fresh.key;
+            this.profileModal.base_url = fresh.base_url;
+          }
+        } else {
+          const cur = this.mergedProviders.find(x => x.key === this.profileModal.provider_key);
+          if (cur) this.profileModal.base_url = cur.base_url;
+        }
+        p.done('Сохранено');
+      } catch (e) { p.fail(_parseErr(e)); }
+    },
+
+    async peDeleteProvider(id) {
+      if (!confirm('Удалить этот эндпоинт?')) return;
+      const p = Toast.progress('Удаление…');
+      try {
+        await api(`/api/settings/user-providers/${id}`, { method: 'DELETE' });
+        if (this.providerEditor && this.providerEditor.id === id) this.providerEditor = null;
+        await this._refreshProviders();
+        p.done('Удалено');
+      } catch (e) { p.fail(_parseErr(e)); }
+    },
+
+    /* ── global headers ── */
+    async saveGlobalHeaders() {
+      const p = Toast.progress('Сохранение…');
+      try {
+        await api('/api/settings', { method: 'PUT', body: { llm_extra_headers: this.globalHeaders } });
+        const s = await api('/api/settings');
+        if (typeof s.llm_extra_headers === 'string') this.globalHeaders = s.llm_extra_headers;
+        p.done('Сохранено');
+      } catch (e) { p.fail(_parseErr(e)); }
+    },
   };
+}
+
+function _isMasked(v) { return typeof v === 'string' && v.includes('••'); }
+function _parseErr(e) {
+  let msg = (e && e.message) ? e.message : String(e);
+  try {
+    const j = JSON.parse(msg);
+    if (j.detail) msg = typeof j.detail === 'string' ? j.detail : (j.detail[0] && j.detail[0].msg) || JSON.stringify(j.detail);
+  } catch (_) {}
+  return msg;
 }
 </script>
 {% endblock %}

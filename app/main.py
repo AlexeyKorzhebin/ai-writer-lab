@@ -4,6 +4,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.routers import home, projects, chapters, narrative, export, settings, chat, locations, illustrations, analytics
@@ -39,6 +40,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AI Writer Lab", lifespan=lifespan)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico():
+    """Браузеры запрашивают /favicon.ico по умолчанию; отдаём SVG без 404."""
+    return RedirectResponse(url="/static/favicon.svg", status_code=307)
+
 
 if os.path.isdir(_STATIC_DIR):
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

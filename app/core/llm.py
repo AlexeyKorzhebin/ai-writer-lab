@@ -1,4 +1,4 @@
-from typing import Optional, AsyncIterator
+from typing import AsyncIterator, Optional
 import json
 import logging
 
@@ -16,20 +16,24 @@ class OpenAIAdapter:
         api_key: Optional[str] = None,
         model: Optional[str] = None,
         timeout: Optional[float] = None,
+        extra_headers: Optional[dict[str, str]] = None,
     ):
         settings = get_settings()
         self.base_url = (base_url or settings.openai_base_url).rstrip("/")
         self.api_key = api_key or settings.openai_api_key
         self.model = model or settings.openai_model
         self.timeout = timeout or settings.llm_timeout
+        self.extra_headers = extra_headers or {}
 
         if not self.base_url:
             raise ValueError("OPENAI_BASE_URL is not set")
 
-    def _headers(self) -> dict:
-        headers = {"Content-Type": "application/json"}
+    def _headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        for k, v in self.extra_headers.items():
+            headers[str(k)] = str(v)
         return headers
 
     async def generate(self, prompt: str, *, temperature: Optional[float] = None) -> str:

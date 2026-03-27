@@ -68,6 +68,7 @@ async def seed_outline_scenes(ac, project_id: int, *, scene_titles: list[str] | 
         async def generate(self, prompt: str, **kwargs):
             return payload
 
+    prev = app.dependency_overrides.get(get_llm)
     app.dependency_overrides[get_llm] = lambda: _Mock()
     try:
         r = await ac.post(f"/projects/{project_id}/narrative-spec/generate-outline")
@@ -76,7 +77,10 @@ async def seed_outline_scenes(ac, project_id: int, *, scene_titles: list[str] | 
         assert data.get("status") == "outline generated"
         return data
     finally:
-        app.dependency_overrides.pop(get_llm, None)
+        if prev is not None:
+            app.dependency_overrides[get_llm] = prev
+        else:
+            app.dependency_overrides.pop(get_llm, None)
 
 
 async def create_project_with_narrative_and_scenes(ac, title: str = "With scenes") -> int:
@@ -87,6 +91,7 @@ async def create_project_with_narrative_and_scenes(ac, title: str = "With scenes
 
 async def generate_locations_with_mock_llm(ac, project_id: int, mock_llm_instance) -> dict:
     """POST generate-locations с подменённым LLM (возвращает JSON-массив локаций)."""
+    prev = app.dependency_overrides.get(get_llm)
     app.dependency_overrides[get_llm] = lambda: mock_llm_instance
     try:
         r = await ac.post(f"/projects/{project_id}/narrative-spec/generate-locations")
@@ -95,4 +100,7 @@ async def generate_locations_with_mock_llm(ac, project_id: int, mock_llm_instanc
         assert "locations" in data and len(data["locations"]) >= 1
         return data
     finally:
-        app.dependency_overrides.pop(get_llm, None)
+        if prev is not None:
+            app.dependency_overrides[get_llm] = prev
+        else:
+            app.dependency_overrides.pop(get_llm, None)

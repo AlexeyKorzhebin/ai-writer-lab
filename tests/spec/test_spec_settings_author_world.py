@@ -34,7 +34,7 @@ async def test_settings_page_and_api():
         assert isinstance(prov.json(), list)
         assert len(prov.json()) >= 1
 
-        models = await ac.get("/api/settings/models/openai")
+        models = await ac.get("/api/settings/models/caila")
         assert models.status_code == 200
         assert "models" in models.json()
 
